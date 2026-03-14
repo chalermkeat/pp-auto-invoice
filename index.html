@@ -9,8 +9,35 @@
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Sarabun', sans-serif; font-size: 13px; color: #333; }
-        .a4-page { width: 210mm; height: 297mm; padding: 12mm 15mm; margin: 10px auto; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; box-sizing: border-box; }
-        @media print { .no-print { display: none !important; } @page { size: A4 portrait; margin: 0mm; } body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .a4-page { margin: 0 !important; box-shadow: none !important; page-break-after: always; height: 296mm !important; overflow: hidden; } #printArea .a4-page:last-child { page-break-after: auto !important; } }
+        
+        /* ปรับปรุง CSS เพื่อคุมหน้ากระดาษให้ไม่เกิน */
+        .a4-page { 
+            width: 210mm; 
+            height: 296.8mm; /* ปรับลดลงเล็กน้อยเพื่อกันหน้าเกิน */
+            padding: 12mm 15mm; 
+            margin: 10px auto; 
+            background: white; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.1); 
+            display: flex; 
+            flex-direction: column; 
+            box-sizing: border-box; 
+            page-break-after: always;
+            position: relative;
+        }
+
+        /* แก้ปัญหาหน้าเกินหน้าที่ 4 */
+        #printArea .a4-page:last-child {
+            page-break-after: auto !important;
+            margin-bottom: 0 !important;
+        }
+
+        @media print { 
+            .no-print { display: none !important; } 
+            @page { size: A4 portrait; margin: 0mm; } 
+            body { margin: 0 !important; padding: 0 !important; background: white; } 
+            .a4-page { margin: 0 !important; box-shadow: none !important; height: 297mm !important; } 
+        }
+
         table { border-collapse: collapse; }
         .page-1 .theme-bg { background-color: #8B0000 !important; color: white !important; } .page-1 .theme-border { border-color: #8B0000 !important; }
         .page-2 .theme-bg { background-color: #E65C00 !important; color: white !important; } .page-2 .theme-border { border-color: #E65C00 !important; }
@@ -46,7 +73,7 @@
                 <button onclick="clearInvoiceForm()" class="bg-gray-500 text-white px-4 py-2 rounded font-bold shadow text-sm">🔄 เริ่มใบใหม่</button>
                 <button onclick="saveToDatabase()" id="btnSaveInvoice" class="bg-indigo-600 text-white px-6 py-2 rounded font-bold shadow text-sm">💾 บันทึกข้อมูล</button>
                 <button onclick="downloadPDF()" class="bg-orange-500 text-white px-6 py-2 rounded font-bold shadow text-sm">📤 แชร์ไฟล์ PDF</button>
-                <button onclick="window.print()" class="bg-green-600 text-white px-4 py-2 rounded font-bold shadow text-sm">🖨️ พิมพ์เอกสาร</button>
+                <button onclick="window.print()" class="bg-green-600 text-white px-6 py-2 rounded font-bold shadow text-sm">🖨️ พิมพ์เอกสาร</button>
             </div>
         </div>
 
@@ -113,13 +140,11 @@
                     if(settings.iso_logo) uploadedIsoLogoUrl = settings.iso_logo;
                     calculateAndRenderInvoice();
                 });
-                
                 fetch(SCRIPT_URL + "?type=products").then(r => r.json()).then(data => { 
                     productDatabase = Object.keys(data).length > 0 ? data : {"ไม่มีข้อมูล": {desc: "โปรดเพิ่มข้อมูลใน Google Sheets", price:0}}; 
                     document.getElementById('inputRowsContainer').innerHTML = '';
                     for(let i=0; i<3; i++) addBlankRow();
                 });
-
                 fetch(SCRIPT_URL + "?type=customers").then(r => r.json()).then(data => {
                     customersDatabase = data;
                     const custDrop = document.getElementById('customerDropdown');
@@ -127,7 +152,6 @@
                     data.forEach((c, idx) => { custDrop.innerHTML += `<option value="${idx}">${c.name}</option>`; });
                     calculateAndRenderInvoice();
                 });
-
                 fetch(SCRIPT_URL + "?type=invoice").then(r => r.json()).then(data => {
                     invoiceHistory = data;
                     const histDrop = document.getElementById('historyDropdown');
@@ -138,27 +162,27 @@
             } catch (err) { console.error(err); }
         }
 
-        // --- ปรับปรุงฟังก์ชัน SHARE เพื่อแก้ภาษาเพี้ยน ---
+        // --- ปรับปรุงฟังก์ชัน SHARE ให้เรนเดอร์เป็นภาพ เพื่อแก้ภาษาเพี้ยนและหน้าเกิน ---
         async function downloadPDF() {
             const element = document.getElementById('printArea');
             const invNo = document.getElementById('invNo').value || 'New';
             const fileName = `Invoice_IV${invNo}.pdf`;
             
-            // เลื่อนไปบนสุดเพื่อให้การจับภาพแม่นยำขึ้น
+            // เลื่อนไปบนสุดเพื่อให้การจับภาพแม่นยำ
             window.scrollTo(0,0);
 
             const opt = {
                 margin:       0,
                 filename:     fileName,
-                image:        { type: 'jpeg', quality: 0.98 },
+                image:        { type: 'jpeg', quality: 1.0 }, // ใช้คุณภาพสูงสุด
                 html2canvas:  { 
-                    scale: 4,             // เพิ่มความคมชัดสูงพิเศษ
+                    scale: 3,             // ความคมชัดกำลังดี (ถ้า 4 ไฟล์อาจจะใหญ่เกินส่ง LINE)
                     useCORS: true, 
-                    allowTaint: true,     // ยอมรับการดึงข้อมูลข้ามโดเมน
-                    letterRendering: true, // แก้สระลอย
-                    logging: false
+                    letterRendering: false, // ปรับเป็น false เมื่อใช้โหมดภาพเพื่อให้ระบบวาดพิกเซลตามฟอนต์ที่เห็นจริง
+                    scrollY: 0,
+                    scrollX: 0
                 },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true }
             };
 
             const btn = event.target;
@@ -167,9 +191,9 @@
             btn.disabled = true;
 
             try {
-                // รอให้ฟอนต์โหลดเสร็จก่อนเริ่มประมวลผล
                 await document.fonts.ready;
                 
+                // สั่งสร้าง PDF เป็น Blob
                 const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
                 const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
 
@@ -181,10 +205,10 @@
                     });
                 } else {
                     html2pdf().set(opt).from(element).save();
-                    alert("ระบบแชร์โดยตรงไม่รองรับบนอุปกรณ์นี้ ระบบจึงทำการดาวน์โหลดไฟล์แทนครับ");
+                    alert("อุปกรณ์นี้ไม่รองรับการแชร์โดยตรง ระบบทำการดาวน์โหลดไฟล์ลงเครื่องแทนครับ");
                 }
             } catch (error) {
-                console.log('Share failed or cancelled', error);
+                console.log('Share error:', error);
             } finally {
                 btn.innerText = originalText;
                 btn.disabled = false;
