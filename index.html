@@ -5,39 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ใบกำกับภาษี - Paul's Dev</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Sarabun', sans-serif; font-size: 13px; color: #333; }
-        
-        /* ปรับปรุง CSS เพื่อคุมหน้ากระดาษให้ไม่เกิน */
-        .a4-page { 
-            width: 210mm; 
-            height: 296.8mm; /* ปรับลดลงเล็กน้อยเพื่อกันหน้าเกิน */
-            padding: 12mm 15mm; 
-            margin: 10px auto; 
-            background: white; 
-            box-shadow: 0 0 10px rgba(0,0,0,0.1); 
-            display: flex; 
-            flex-direction: column; 
-            box-sizing: border-box; 
-            page-break-after: always;
-            position: relative;
-        }
-
-        /* แก้ปัญหาหน้าเกินหน้าที่ 4 */
-        #printArea .a4-page:last-child {
-            page-break-after: auto !important;
-            margin-bottom: 0 !important;
-        }
-
-        @media print { 
-            .no-print { display: none !important; } 
-            @page { size: A4 portrait; margin: 0mm; } 
-            body { margin: 0 !important; padding: 0 !important; background: white; } 
-            .a4-page { margin: 0 !important; box-shadow: none !important; height: 297mm !important; } 
-        }
-
+        .a4-page { width: 210mm; height: 297mm; padding: 12mm 15mm; margin: 10px auto; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; box-sizing: border-box; }
+        @media print { .no-print { display: none !important; } @page { size: A4 portrait; margin: 0mm; } body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .a4-page { margin: 0 !important; box-shadow: none !important; page-break-after: always; height: 296mm !important; overflow: hidden; } #printArea .a4-page:last-child { page-break-after: auto !important; } }
         table { border-collapse: collapse; }
         .page-1 .theme-bg { background-color: #8B0000 !important; color: white !important; } .page-1 .theme-border { border-color: #8B0000 !important; }
         .page-2 .theme-bg { background-color: #E65C00 !important; color: white !important; } .page-2 .theme-border { border-color: #E65C00 !important; }
@@ -72,8 +44,7 @@
             <div class="space-x-2">
                 <button onclick="clearInvoiceForm()" class="bg-gray-500 text-white px-4 py-2 rounded font-bold shadow text-sm">🔄 เริ่มใบใหม่</button>
                 <button onclick="saveToDatabase()" id="btnSaveInvoice" class="bg-indigo-600 text-white px-6 py-2 rounded font-bold shadow text-sm">💾 บันทึกข้อมูล</button>
-                <button onclick="downloadPDF()" class="bg-orange-500 text-white px-6 py-2 rounded font-bold shadow text-sm">📤 แชร์ไฟล์ PDF</button>
-                <button onclick="window.print()" class="bg-green-600 text-white px-6 py-2 rounded font-bold shadow text-sm">🖨️ พิมพ์เอกสาร</button>
+                <button onclick="window.print()" class="bg-green-600 text-white px-6 py-2 rounded font-bold shadow text-sm">🖨️ พิมพ์ (PDF)</button>
             </div>
         </div>
 
@@ -121,6 +92,7 @@
     <div id="printArea"></div>
 
     <script>
+        // === กรุณาเปลี่ยน URL นี้ให้เป็นของคุณ ===
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby_uqrQDEI1PbLriTlg4I3vjyZ-BLgH7JJZqBf-I3xPQz3bPLLKL6ffqygmuA5Ky1Jl/exec'; 
         
         let productDatabase = {}; let customersDatabase = []; let invoiceHistory = []; 
@@ -128,30 +100,38 @@
 
         window.onload = async function() {
             document.getElementById('invDate').valueAsDate = new Date();
-            await fetchCloudData();
+            await fetchCloudData(); // โหลดข้อมูลทั้งหมดจาก Cloud
             for(let i=0; i<3; i++) addBlankRow();
             calculateAndRenderInvoice();
         };
 
         async function fetchCloudData() {
             try {
+                // 1. โหลดการตั้งค่า (Logo)
                 fetch(SCRIPT_URL + "?type=settings").then(r => r.json()).then(settings => {
                     if(settings.company_logo) uploadedLogoUrl = settings.company_logo;
                     if(settings.iso_logo) uploadedIsoLogoUrl = settings.iso_logo;
                     calculateAndRenderInvoice();
                 });
+                
+                // 2. โหลดสินค้า
                 fetch(SCRIPT_URL + "?type=products").then(r => r.json()).then(data => { 
                     productDatabase = Object.keys(data).length > 0 ? data : {"ไม่มีข้อมูล": {desc: "โปรดเพิ่มข้อมูลใน Google Sheets", price:0}}; 
                     document.getElementById('inputRowsContainer').innerHTML = '';
                     for(let i=0; i<3; i++) addBlankRow();
                 });
+
+                // 3. โหลดลูกค้า
                 fetch(SCRIPT_URL + "?type=customers").then(r => r.json()).then(data => {
                     customersDatabase = data;
                     const custDrop = document.getElementById('customerDropdown');
                     custDrop.innerHTML = '';
+                    if(data.length === 0) custDrop.innerHTML = '<option value="">ไม่มีข้อมูลลูกค้าในระบบ</option>';
                     data.forEach((c, idx) => { custDrop.innerHTML += `<option value="${idx}">${c.name}</option>`; });
                     calculateAndRenderInvoice();
                 });
+
+                // 4. โหลดประวัติบิล
                 fetch(SCRIPT_URL + "?type=invoice").then(r => r.json()).then(data => {
                     invoiceHistory = data;
                     const histDrop = document.getElementById('historyDropdown');
@@ -159,79 +139,33 @@
                     data.slice().reverse().forEach(inv => { histDrop.innerHTML += `<option value="${inv.invNo}">${inv.invNo}</option>`; });
                     generateNextInvNo();
                 });
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error("Error fetching data:", err); }
         }
 
-        // --- ปรับปรุงฟังก์ชัน SHARE ให้เรนเดอร์เป็นภาพ เพื่อแก้ภาษาเพี้ยนและหน้าเกิน ---
-        async function downloadPDF() {
-            const element = document.getElementById('printArea');
-            const invNo = document.getElementById('invNo').value || 'New';
-            const fileName = `Invoice_IV${invNo}.pdf`;
-            
-            // เลื่อนไปบนสุดเพื่อให้การจับภาพแม่นยำ
-            window.scrollTo(0,0);
-
-            const opt = {
-                margin:       0,
-                filename:     fileName,
-                image:        { type: 'jpeg', quality: 1.0 }, // ใช้คุณภาพสูงสุด
-                html2canvas:  { 
-                    scale: 3,             // ความคมชัดกำลังดี (ถ้า 4 ไฟล์อาจจะใหญ่เกินส่ง LINE)
-                    useCORS: true, 
-                    letterRendering: false, // ปรับเป็น false เมื่อใช้โหมดภาพเพื่อให้ระบบวาดพิกเซลตามฟอนต์ที่เห็นจริง
-                    scrollY: 0,
-                    scrollX: 0
-                },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true }
-            };
-
-            const btn = event.target;
-            const originalText = btn.innerText;
-            btn.innerText = "⏳ กำลังเตรียมไฟล์...";
-            btn.disabled = true;
-
-            try {
-                await document.fonts.ready;
-                
-                // สั่งสร้าง PDF เป็น Blob
-                const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
-                const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
-
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        files: [file],
-                        title: 'ส่งใบกำกับภาษี',
-                        text: `ใบกำกับภาษีเลขที่ ${invNo}`,
-                    });
-                } else {
-                    html2pdf().set(opt).from(element).save();
-                    alert("อุปกรณ์นี้ไม่รองรับการแชร์โดยตรง ระบบทำการดาวน์โหลดไฟล์ลงเครื่องแทนครับ");
-                }
-            } catch (error) {
-                console.log('Share error:', error);
-            } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
-            }
-        }
-
+        // ระบบบีบอัดภาพและเซฟลง Cloud อัตโนมัติ (แก้ไขพื้นหลังดำแล้ว)
         function uploadLogoToCloud(event, key) {
             const file = event.target.files[0]; if(!file) return;
             const statusEl = key === 'company_logo' ? document.getElementById('logoStatus') : document.getElementById('isoStatus');
             statusEl.innerText = "⏳ กำลังอัปโหลด...";
+            
             const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = key === 'company_logo' ? 400 : 200;
+                    const MAX_WIDTH = key === 'company_logo' ? 400 : 200; // ย่อขนาดให้พอดี
                     const scaleSize = MAX_WIDTH / img.width;
                     canvas.width = MAX_WIDTH; canvas.height = img.height * scaleSize;
                     const ctx = canvas.getContext('2d'); 
-                    ctx.fillStyle = '#FFFFFF';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // --- เพิ่มส่วนนี้เพื่อแก้ปัญหาพื้นหลังดำ ---
+                    ctx.fillStyle = '#FFFFFF'; // กำหนดสีพื้นหลังเป็นสีขาว
+                    ctx.fillRect(0, 0, canvas.width, canvas.height); // เทสีขาวลงไปก่อน
+                    // ------------------------------------
+                    
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     const base64Str = canvas.toDataURL('image/jpeg', 0.8);
+                    
                     fetch(SCRIPT_URL, {
                         method: 'POST', body: JSON.stringify({type: 'save_setting', key: key, value: base64Str}), headers: { 'Content-Type': 'text/plain;charset=utf-8' }
                     }).then(res => res.json()).then(result => {
@@ -247,7 +181,6 @@
             }
             reader.readAsDataURL(file);
         }
-
         function generateNextInvNo() {
             if (invoiceHistory.length === 0) { document.getElementById('invNo').value = "6903001"; calculateAndRenderInvoice(); return; }
             let maxNo = 0;
@@ -261,10 +194,13 @@
                 const data = JSON.parse(invData.rawData);
                 document.getElementById('invNo').value = data.invNo.replace(/^IV/, '');
                 document.getElementById('invDate').value = data.date || '';
+                
+                // เลือกลูกค้าตามประวัติ
                 if(data.custName) {
                     const custIndex = customersDatabase.findIndex(c => c.name === data.custName);
                     if(custIndex > -1) document.getElementById('customerDropdown').value = custIndex;
                 }
+
                 document.getElementById('inputRowsContainer').innerHTML = '';
                 if(data.items) data.items.forEach(item => addBlankRow(item));
                 while(document.querySelectorAll('.item-row').length < 3) addBlankRow();
@@ -335,6 +271,7 @@
             let displayDate = '-'; let mYear = '-';
             if(dStr) { const d = new Date(dStr); displayDate = d.toLocaleDateString('th-TH'); mYear = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."][d.getMonth()] + " / " + (d.getFullYear() + 543); }
 
+            // ดึงข้อมูลลูกค้าที่เลือก
             const custIndex = document.getElementById('customerDropdown').value;
             let custData = { name: "-", address: "-", taxId: "-" };
             if(custIndex !== "" && customersDatabase[custIndex]) custData = customersDatabase[custIndex];
@@ -369,10 +306,19 @@
             const rawInvNo = document.getElementById('invNo').value;
             if(!rawInvNo) return alert('⚠️ กรุณากรอกเลขที่ใบเสร็จ');
             if(itemsForPrint.length === 0) return alert('⚠️ เพิ่มรายการสินค้าอย่างน้อย 1 รายการ');
+
             const custIndex = document.getElementById('customerDropdown').value;
             const custName = custIndex !== "" ? customersDatabase[custIndex].name : "-";
+
             const invNo = 'IV' + rawInvNo;
-            const data = { type: 'invoice', invNo: invNo, date: document.getElementById('invDate').value, custName: custName, grandTotal: itemsForPrint.reduce((s, i) => s + i.total, 0) * 1.07, items: itemsForPrint };
+            const data = {
+                type: 'invoice',
+                invNo: invNo, date: document.getElementById('invDate').value,
+                custName: custName,
+                grandTotal: itemsForPrint.reduce((s, i) => s + i.total, 0) * 1.07,
+                items: itemsForPrint
+            };
+
             const btn = document.getElementById('btnSaveInvoice'); btn.innerHTML = 'กำลังบันทึก...'; btn.disabled = true;
             try {
                 const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'text/plain;charset=utf-8' }});
