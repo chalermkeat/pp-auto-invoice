@@ -138,39 +138,48 @@
             } catch (err) { console.error(err); }
         }
 
-        // --- ฟังก์ชัน PDF ที่แก้ไขแล้ว (แก้ภาษาไทยเพี้ยน) ---
-        function downloadPDF() {
+        // --- แก้ไขฟังก์ชัน PDF ให้เป็นการ SHARE แทน ---
+        async function downloadPDF() {
             const element = document.getElementById('printArea');
             const invNo = document.getElementById('invNo').value || 'New';
+            const fileName = `Invoice_IV${invNo}.pdf`;
             
-            // ปรับแต่งการตั้งค่าเพื่อให้ภาษาไทยคมชัดและจัดหน้าแม่นยำ
             const opt = {
                 margin:       0,
-                filename:     `Invoice_IV${invNo}.pdf`,
+                filename:     fileName,
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { 
-                    scale: 3,             // เพิ่มความชัด (3 เท่า)
-                    useCORS: true, 
-                    letterRendering: true, // หัวใจสำคัญ: แก้ปัญหาสระลอย/ภาษาไทยเพี้ยน
-                    scrollY: 0,
-                    scrollX: 0
-                },
+                html2canvas:  { scale: 3, useCORS: true, letterRendering: true },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
-            // แสดงสถานะการโหลดบนปุ่ม
             const btn = event.target;
             const originalText = btn.innerText;
-            btn.innerText = "⏳ กำลังสร้างไฟล์...";
+            btn.innerText = "⏳ กำลังเตรียมไฟล์...";
             btn.disabled = true;
 
-            // ตรวจสอบฟอนต์ก่อนเริ่มสร้าง PDF
-            document.fonts.ready.then(() => {
-                html2pdf().set(opt).from(element).save().then(() => {
-                    btn.innerText = originalText;
-                    btn.disabled = false;
-                });
-            });
+            try {
+                // สร้าง PDF เป็น Blob (ข้อมูลในหน่วยความจำ)
+                const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
+                const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+                // เรียกใช้ Web Share API
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: 'ส่งใบกำกับภาษี',
+                        text: `ใบกำกับภาษีเลขที่ ${invNo}`,
+                    });
+                } else {
+                    // หากเบราว์เซอร์ไม่รองรับ Share ให้ดาวน์โหลดปกติเป็นทางเลือกสำรอง
+                    html2pdf().set(opt).from(element).save();
+                    alert("เบราว์เซอร์นี้ไม่รองรับการแชร์โดยตรง ระบบจึงทำการดาวน์โหลดไฟล์ลงเครื่องแทนครับ");
+                }
+            } catch (error) {
+                console.log('User cancelled or error occurred', error);
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
         }
 
         function uploadLogoToCloud(event, key) {
