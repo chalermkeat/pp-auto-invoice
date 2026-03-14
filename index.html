@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบออกใบกำกับภาษี - PAUL's DEV</title>
+    <title>ระบบออกใบกำกับภาษี - Paul's Dev</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -68,7 +68,7 @@
 
     <div class="no-print max-w-5xl mx-auto p-6 bg-white shadow-md mt-5 rounded-lg border-t-4 border-blue-600 relative">
         <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-blue-900">ระบบจัดการใบกำกับภาษี (SUPER PRO)</h1>
+            <h1 class="text-2xl font-bold text-blue-900">ระบบจัดการใบกำกับภาษี (Paul's Dev)</h1>
             <div class="space-x-2">
                 <button onclick="clearForm()" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 font-bold shadow">🔄 เริ่มใบใหม่</button>
                 <button onclick="saveToDatabase()" id="btnSave" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700 font-bold shadow">💾 บันทึกข้อมูล</button>
@@ -90,7 +90,7 @@
                 </div>
             </div>
 
-            <div class="col-span-4 grid grid-cols-4 gap-4 items-end">
+            <div class="col-span-4 grid grid-cols-3 gap-4 items-end">
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1">ดึงข้อมูลเก่าเพื่อแก้ไข</label>
                     <div class="flex gap-1">
@@ -112,11 +112,6 @@
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1">วันที่ออกเอกสาร (ปฏิทิน)</label>
                     <input type="date" id="invDate" class="border p-2 rounded border-gray-300 w-full" onchange="calculateAndRender()">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">ส่วนลด %</label>
-                    <input type="number" id="discountPercent" placeholder="ส่วนลด %" class="border p-2 rounded border-gray-300 w-full" value="0" onchange="calculateAndRender()" onkeyup="calculateAndRender()">
                 </div>
             </div>
         </div>
@@ -271,7 +266,6 @@
             
             let maxNo = 0;
             invoiceHistory.forEach(inv => {
-                // แยกเอาเฉพาะตัวเลขด้านหลังคำว่า IV ออกมา
                 const numMatch = inv.invNo.match(/\d+$/);
                 if(numMatch) {
                     const num = parseInt(numMatch[0], 10);
@@ -279,7 +273,6 @@
                 }
             });
 
-            // ถ้าช่องเลขที่ยังว่างอยู่ (หรือผู้ใช้เพิ่งกดเริ่มใบใหม่) ให้ใส่เลข +1 เข้าไป
             if(maxNo > 0 && !document.getElementById('invNo').value) {
                 document.getElementById('invNo').value = (maxNo + 1).toString();
                 calculateAndRender();
@@ -295,7 +288,7 @@
                 const data = JSON.parse(invData.rawData);
                 document.getElementById('invNo').value = data.invNo.replace(/^IV/, '');
                 document.getElementById('invDate').value = data.date || document.getElementById('invDate').value;
-                document.getElementById('discountPercent').value = data.discountPercent || 0;
+                // ตัดเรื่องส่วนลดออกในการโหลด
 
                 const container = document.getElementById('inputRowsContainer');
                 container.innerHTML = '';
@@ -315,7 +308,6 @@
         function clearForm() {
             document.getElementById('invNo').value = '';
             document.getElementById('invDate').valueAsDate = new Date();
-            document.getElementById('discountPercent').value = 0;
             document.getElementById('historyDropdown').value = '';
             
             document.getElementById('inputRowsContainer').innerHTML = '';
@@ -406,8 +398,7 @@
             });
 
             subTotal = Math.round(subTotal * 100) / 100;
-            const discountPercent = parseFloat(document.getElementById('discountPercent').value) || 0;
-            const discountAmt = Math.round((subTotal * (discountPercent / 100)) * 100) / 100;
+            const discountAmt = 0; // ไม่มีส่วนลดแล้ว ให้เป็น 0
             const totalAfterDiscount = Math.round((subTotal - discountAmt) * 100) / 100;
             const vat = Math.round((totalAfterDiscount * 0.07) * 100) / 100;
             const grandTotal = Math.round((totalAfterDiscount + vat) * 100) / 100;
@@ -558,8 +549,8 @@
                                     <td class="p-1 pr-2 border-b border-l theme-border text-right bg-gray-50">${subTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                 </tr>
                                 <tr>
-                                    <td class="p-1 pl-2 border-b theme-border">ส่วนลด<br><span class="text-[9px]">DISCOUNT</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${document.getElementById('discountPercent').value || 0}%</td>
-                                    <td class="p-1 pr-2 border-b border-l theme-border text-right bg-gray-50">${discountAmt > 0 ? discountAmt.toLocaleString(undefined, {minimumFractionDigits: 2}) : '-'}</td>
+                                    <td class="p-1 pl-2 border-b theme-border">ส่วนลด<br><span class="text-[9px]">DISCOUNT</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0%</td>
+                                    <td class="p-1 pr-2 border-b border-l theme-border text-right bg-gray-50">-</td>
                                 </tr>
                                 <tr>
                                     <td class="p-1 pl-2 border-b theme-border">มูลค่าสินค้าหลังหักส่วนลด<br><span class="text-[9px]">TOTAL AFTER DISCOUNT</span></td>
@@ -612,11 +603,10 @@
 
             const invNo = 'IV' + rawInvNo;
             const dateStr = document.getElementById('invDate').value;
-            const discountPercent = parseFloat(document.getElementById('discountPercent').value) || 0;
             
             let subTotal = itemsForPrint.reduce((s, i) => s + i.total, 0);
             subTotal = Math.round(subTotal * 100) / 100;
-            const discountAmt = Math.round((subTotal * (discountPercent / 100)) * 100) / 100;
+            const discountAmt = 0; // ไม่มีส่วนลด
             const totalAfterDiscount = Math.round((subTotal - discountAmt) * 100) / 100;
             const vat = Math.round((totalAfterDiscount * 0.07) * 100) / 100;
             const grandTotal = Math.round((totalAfterDiscount + vat) * 100) / 100;
@@ -631,7 +621,7 @@
                 invNo: invNo,
                 date: dateStr,
                 custName: "บริษัท เอ็น.เอ.อินเตอร์ อิเล็คโทรเพลทติ้ง จำกัด",
-                discountPercent: discountPercent,
+                discountPercent: 0,
                 grandTotal: grandTotal,
                 items: itemsForPrint
             };
