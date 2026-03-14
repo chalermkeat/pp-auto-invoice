@@ -181,7 +181,6 @@
             }
             reader.readAsDataURL(file);
         }
-
         function generateNextInvNo() {
             if (invoiceHistory.length === 0) { document.getElementById('invNo').value = "6903001"; calculateAndRenderInvoice(); return; }
             let maxNo = 0;
