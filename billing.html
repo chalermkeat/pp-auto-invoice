@@ -17,14 +17,15 @@
             #printArea .a4-page:last-child { page-break-after: auto !important; }
         }
         table { border-collapse: collapse; }
-        
-        /* ธีมสีแยกตามสำเนา */
         .page-1 .theme-bg { background-color: #8B0000 !important; color: white !important; }
         .page-1 .theme-border { border-color: #8B0000 !important; }
         .page-2 .theme-bg { background-color: #E65C00 !important; color: white !important; }
         .page-2 .theme-border { border-color: #E65C00 !important; }
         .page-3 .theme-bg { background-color: #0047AB !important; color: white !important; }
         .page-3 .theme-border { border-color: #0047AB !important; }
+        
+        /* สีกรอบตารางมาตรฐานสำหรับใบวางบิล */
+        .bill-border { border-color: #334155 !important; } /* สี Slate-700 เข้มกำลังดีไม่ดำสนิท */
     </style>
 </head>
 <body class="bg-gray-100 pb-20">
@@ -144,7 +145,7 @@
         function autoFetchBillingData() {
             const monthStr = document.getElementById('billMonthSelect').value;
             if (!monthStr) return alert("กรุณาเลือกเดือนก่อนครับ");
-            if (invoiceHistory.length === 0) return alert("กำลังโหลดข้อมูลจากเซิร์ฟเวอร์ โปรดรอสักครู่และกดใหม่อีกครั้ง");
+            if (invoiceHistory.length === 0) return alert("ยังโหลดข้อมูลจากเซิร์ฟเวอร์ไม่เสร็จครับ โปรดรอสักครู่");
 
             const selectedYear = parseInt(monthStr.split('-')[0]); const selectedMonth = parseInt(monthStr.split('-')[1]);
             billingItemsForPrint = []; let counter = 1;
@@ -256,52 +257,52 @@
                         <table class="w-full text-[11px] border-collapse">
                             <thead>
                                 <tr class="theme-bg text-center text-white">
-                                    <th class="py-1 border border-white font-normal w-12">ลำดับ</th>
-                                    <th class="py-1 border border-white font-normal">เลขที่ใบกำกับภาษี</th>
-                                    <th class="py-1 border border-white font-normal w-24">วันที่</th>
-                                    <th class="py-1 border border-white font-normal w-36">ครบกำหนด</th>
-                                    <th class="py-1 border border-white font-normal w-28">จำนวนเงิน</th>
+                                    <th class="py-1 border bill-border font-normal">ลำดับ</th>
+                                    <th class="py-1 border bill-border font-normal">เลขที่ใบกำกับภาษี</th>
+                                    <th class="py-1 border bill-border font-normal">วันที่</th>
+                                    <th class="py-1 border bill-border font-normal">ครบกำหนด</th>
+                                    <th class="py-1 border bill-border font-normal w-32">จำนวนเงิน</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 ${billingItemsForPrint.map((item) => `
                                 <tr>
-                                    <td class="text-center py-1 border-b border-l border-r border-dotted border-gray-400">${item.no}</td>
-                                    <td class="text-center py-1 border-b border-r border-dotted border-gray-400">${item.invNo}</td>
-                                    <td class="text-center py-1 border-b border-r border-dotted border-gray-400">${item.dateStr.replace(/\//g, '/')}</td>
-                                    <td class="text-center py-1 border-b border-r border-dotted border-gray-400">${item.dueDateStr.replace(/\//g, '/')}</td>
-                                    <td class="text-right py-1 px-4 border-b border-r border-dotted border-gray-400">${item.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                    <td class="text-center py-1 border-b border-l border-r border-dotted bill-border">${item.no}</td>
+                                    <td class="text-center py-1 border-b border-r border-dotted bill-border">${item.invNo}</td>
+                                    <td class="text-center py-1 border-b border-r border-dotted bill-border">${item.dateStr.replace(/\//g, '/')}</td>
+                                    <td class="text-center py-1 border-b border-r border-dotted bill-border">${item.dueDateStr.replace(/\//g, '/')}</td>
+                                    <td class="text-right py-1 px-4 border-b border-r border-dotted bill-border">${item.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                 </tr>`).join('')}
                                 
                                 ${Array(12 - billingItemsForPrint.length > 0 ? 12 - billingItemsForPrint.length : 0).fill(0).map(() => `
                                 <tr>
-                                    <td class="h-6 border-b border-l border-r border-dotted border-gray-400"></td>
-                                    <td class="border-b border-r border-dotted border-gray-400"></td>
-                                    <td class="border-b border-r border-dotted border-gray-400"></td>
-                                    <td class="border-b border-r border-dotted border-gray-400"></td>
-                                    <td class="border-b border-r border-dotted border-gray-400"></td>
+                                    <td class="h-6 border-b border-l border-r border-dotted bill-border"></td>
+                                    <td class="border-b border-r border-dotted bill-border"></td>
+                                    <td class="border-b border-r border-dotted bill-border"></td>
+                                    <td class="border-b border-r border-dotted bill-border"></td>
+                                    <td class="border-b border-r border-dotted bill-border"></td>
                                 </tr>`).join('')}
                                 
-                                <tr class="border-t border-gray-800 text-black">
-                                    <td colspan="3" rowspan="3" class="border-b border-l border-r border-gray-800 p-2 align-top bg-white text-black">
-                                        <span class="font-bold">หมายเหตุ:</span><br><br>
+                                <tr class="border-t bill-border text-black">
+                                    <td colspan="2" rowspan="3" class="border-b border-l border-r bill-border p-2 align-top">
+                                        <span class="font-bold">หมายเหตุ:</span><br>.
                                     </td>
-                                    <td class="text-right border-b border-r border-gray-800 p-1 px-2 font-bold">รวมเงิน (Total)</td>
-                                    <td class="text-right py-1 px-4 border-b border-r border-gray-800 bg-gray-50 font-bold">${totalBeforeVat.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                    <td colspan="2" class="text-right border-b bill-border p-1 px-2 font-bold">รวมเงิน (Total)</td>
+                                    <td class="text-right py-1 px-4 border-b border-r bill-border bg-gray-50 font-bold">${totalBeforeVat.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                 </tr>
                                 <tr class="text-black">
-                                    <td class="text-right border-b border-r border-gray-800 p-1 px-2 font-bold">ภาษีมูลค่าเพิ่ม (Vat) 7%</td>
-                                    <td class="text-right py-1 px-4 border-b border-r border-gray-800 bg-gray-50 font-bold">${vatAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                    <td colspan="2" class="text-right border-b bill-border p-1 px-2 font-bold">ภาษีมูลค่าเพิ่ม (Vat) 7%</td>
+                                    <td class="text-right py-1 px-4 border-b border-r bill-border bg-gray-50 font-bold">${vatAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                 </tr>
                                 <tr class="theme-bg text-white font-bold">
-                                    <td class="text-right border-b border-gray-800 p-1 px-2">รวมเงินทั้งสิ้น (Subtotal)</td>
-                                    <td class="text-right py-1 px-4 border-b border-r border-gray-800 bg-gray-50 text-black">${grandTotalAllInvoices.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                    <td colspan="2" class="text-right border-b bill-border p-1 px-2 border-r" style="border-right-color: white;">รวมเงินทั้งสิ้น (Subtotal)</td>
+                                    <td class="text-right py-1 px-4 border-b border-r bill-border bg-gray-50 text-black">${grandTotalAllInvoices.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
 
-                    <div class="mt-1 text-[11px] border border-gray-800 p-1 bg-gray-50 flex items-center">
+                    <div class="mt-1 text-[11px] border bill-border p-1 bg-gray-50 flex items-center">
                         <span class="w-16 font-bold px-1">ตัวอักษร.</span>
                         <span class="font-bold flex-grow text-center">(${ThaiBaht(grandTotalAllInvoices)})</span>
                     </div>
@@ -309,7 +310,7 @@
                     <div class="mt-2 text-[11px] font-bold px-1">ได้รับสินค้าตามรายการข้างบนไว้เรียบร้อยแล้ว</div>
                     <div class="text-[11px] font-bold px-1 mb-2">ในนาม บริษัท พีพี ออโต้ ซัพพลาย จำกัด</div>
 
-                    <div class="grid grid-cols-3 mt-4 text-[11px] text-center text-black">
+                    <div class="grid grid-cols-3 mt-4 text-[11px] text-center">
                         <div class="flex flex-col items-center">
                             <div class="border-b border-black w-40 mb-1 h-8"></div>
                             <div>ผู้รับวางบิล</div>
