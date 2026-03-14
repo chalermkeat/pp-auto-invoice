@@ -62,24 +62,35 @@
                     <input type="file" id="isoLogoUpload" accept="image/*" onchange="handleIsoLogoUpload(event)" class="border p-1 rounded bg-white text-sm flex-grow">
                     <button onclick="clearIsoLogo()" class="text-red-500 text-sm underline hover:text-red-700">ลบ</button>
                 </div>
+                <div class="col-span-2 text-[11px] text-gray-500 text-center">* โลโก้จะถูกบันทึกจำไว้ในเครื่องอัตโนมัติ ไม่ต้องอัปโหลดใหม่ทุกครั้ง</div>
             </div>
 
-            <input type="text" id="invNo" placeholder="เลขที่ (e.g. IV6903010)" class="border p-2 rounded border-gray-300">
-            <input type="text" id="invDate" placeholder="วันที่ (e.g. 13/3/2569)" class="border p-2 rounded border-gray-300">
-            <input type="text" id="creditTerm" placeholder="เครดิต (เช่น 30 วัน)" class="border p-2 rounded border-gray-300">
+            <div class="flex items-center border rounded border-gray-300 bg-white">
+                <span class="px-3 py-2 bg-gray-200 border-r border-gray-300 font-bold text-gray-700">IV</span>
+                <input type="text" id="invNo" placeholder="เลขที่ (เช่น 6903010)" class="p-2 w-full outline-none" onkeyup="renderPages()">
+            </div>
+            <input type="text" id="invDate" placeholder="วันที่ (e.g. 13/3/2569)" class="border p-2 rounded border-gray-300" onkeyup="renderPages()">
+            
+            <input type="text" id="creditTerm" value="30 วัน" readonly class="border p-2 rounded border-gray-300 bg-gray-200 text-gray-600 cursor-not-allowed text-center">
             <input type="number" id="discountPercent" placeholder="ส่วนลด % (ถ้ามี)" class="border p-2 rounded border-gray-300" value="0" onchange="updateView()">
         </div>
 
         <div class="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-100">
             <h2 class="font-bold mb-2">เพิ่มรายการสินค้า</h2>
             <div class="grid grid-cols-6 gap-2 mb-2">
-                <input type="text" id="pCode" placeholder="รหัสสินค้า" class="border p-2 rounded border-gray-300 col-span-1">
-                <input type="text" id="pDesc" placeholder="รายละเอียด" class="border p-2 rounded border-gray-300 col-span-2">
-                <input type="number" id="pQty" placeholder="จำนวน" class="border p-2 rounded border-gray-300">
-                <input type="text" id="pUnit" placeholder="หน่วย (เช่น PCS.)" class="border p-2 rounded border-gray-300" value="PCS.">
-                <input type="number" id="pPrice" placeholder="ราคา/หน่วย" class="border p-2 rounded border-gray-300">
+                <select id="pCode" onchange="handleProductSelect()" class="border p-2 rounded border-gray-300 col-span-1 bg-white cursor-pointer font-bold">
+                    <option value="">- เลือกรหัสสินค้า -</option>
+                    <option value="71911-X7U00">71911-X7U00</option>
+                    <option value="71911-X7U19">71911-X7U19</option>
+                    <option value="71911-X7A06">71911-X7A06</option>
+                    <option value="71911-X1V23">71911-X1V23</option>
+                </select>
+                <input type="text" id="pDesc" placeholder="รายละเอียด (ดึงอัตโนมัติ)" class="border p-2 rounded border-gray-300 col-span-2 bg-gray-50">
+                <input type="number" id="pQty" placeholder="จำนวน" class="border p-2 rounded border-gray-300 border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="pUnit" placeholder="หน่วย" class="border p-2 rounded border-gray-300 bg-gray-50 text-center" value="PCS.">
+                <input type="number" id="pPrice" placeholder="ราคา/หน่วย (ดึงอัตโนมัติ)" class="border p-2 rounded border-gray-300 bg-gray-50">
             </div>
-            <button onclick="addItem()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-bold text-sm shadow-sm">+ เพิ่มรายการ</button>
+            <button onclick="addItem()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-bold text-sm shadow-sm mt-2">+ เพิ่มรายการ</button>
         </div>
 
         <table class="w-full mt-4 border-collapse bg-white">
@@ -93,9 +104,49 @@
     <div id="printArea"></div>
 
     <script>
+        // ฐานข้อมูลสินค้า
+        const productDatabase = {
+            "71911-X7U00": { desc: "STAY,FR SEAT HEADREST EFC", price: 59.47 },
+            "71911-X7U19": { desc: "STAY,RR SEAT HEADREST EFC", price: 3.76 },
+            "71911-X7A06": { desc: "STAY,FR SEAT HEADREST IMV", price: 38.34 },
+            "71911-X1V23": { desc: "STAY,FR SEAT HEADREST EFC", price: 34.25 }
+        };
+
         let items = [];
         let uploadedLogoUrl = '';
         let uploadedIsoLogoUrl = '';
+
+        // ทำงานทันทีเมื่อเปิดหน้าเว็บ
+        window.onload = function() {
+            const savedLogo = localStorage.getItem('pp_company_logo');
+            if(savedLogo) { uploadedLogoUrl = savedLogo; }
+
+            const savedIsoLogo = localStorage.getItem('pp_iso_logo');
+            if(savedIsoLogo) { uploadedIsoLogoUrl = savedIsoLogo; }
+
+            renderPages();
+        };
+
+        // ฟังก์ชันเมื่อเลือก Dropdown สินค้า
+        function handleProductSelect() {
+            const selectedCode = document.getElementById('pCode').value;
+            if(selectedCode && productDatabase[selectedCode]) {
+                document.getElementById('pDesc').value = productDatabase[selectedCode].desc;
+                document.getElementById('pPrice').value = productDatabase[selectedCode].price;
+                // โฟกัสไปที่ช่องจำนวนให้อัตโนมัติเพื่อความรวดเร็ว
+                document.getElementById('pQty').focus();
+            } else {
+                document.getElementById('pDesc').value = '';
+                document.getElementById('pPrice').value = '';
+            }
+        }
+
+        // ฟังก์ชันดึงเดือนและปีปัจจุบันภาษาไทย
+        function getCurrentMonthYearThai() {
+            const d = new Date();
+            const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+            return thaiMonths[d.getMonth()] + " / " + (d.getFullYear() + 543);
+        }
 
         // จัดการโลโก้บริษัท (ซ้าย)
         function handleLogoUpload(event) {
@@ -104,6 +155,7 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     uploadedLogoUrl = e.target.result;
+                    try { localStorage.setItem('pp_company_logo', uploadedLogoUrl); } catch(e) {}
                     renderPages();
                 }
                 reader.readAsDataURL(file);
@@ -113,6 +165,7 @@
         function clearLogo() {
             uploadedLogoUrl = '';
             document.getElementById('logoUpload').value = '';
+            localStorage.removeItem('pp_company_logo');
             renderPages();
         }
 
@@ -123,6 +176,7 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     uploadedIsoLogoUrl = e.target.result;
+                    try { localStorage.setItem('pp_iso_logo', uploadedIsoLogoUrl); } catch(e) {}
                     renderPages();
                 }
                 reader.readAsDataURL(file);
@@ -132,6 +186,7 @@
         function clearIsoLogo() {
             uploadedIsoLogoUrl = '';
             document.getElementById('isoLogoUpload').value = '';
+            localStorage.removeItem('pp_iso_logo');
             renderPages();
         }
 
@@ -145,10 +200,13 @@
             if(desc && qty > 0) {
                 items.push({ code, desc, qty, unit, price, total: qty * price });
                 updateView();
+                // เคลียร์ฟอร์มหลังเพิ่มเสร็จ
                 document.getElementById('pCode').value = '';
                 document.getElementById('pDesc').value = '';
                 document.getElementById('pQty').value = '';
                 document.getElementById('pPrice').value = '';
+            } else {
+                alert('กรุณาเลือกรหัสสินค้าและใส่จำนวนก่อนครับ');
             }
         }
 
@@ -158,7 +216,7 @@
                 <tr>
                     <td class="text-center border-gray border p-2">${item.code}</td>
                     <td class="border-gray border p-2">${item.desc}</td>
-                    <td class="text-center border-gray border p-2">${item.qty}</td>
+                    <td class="text-center border-gray border p-2">${item.qty.toLocaleString()}</td>
                     <td class="text-center border-gray border p-2">${item.unit}</td>
                     <td class="text-right border-gray border p-2">${item.price.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                     <td class="text-right font-bold border-gray border p-2">${item.total.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
@@ -184,6 +242,13 @@
             const totalAfterDiscount = subTotal - discountAmt;
             const vat = totalAfterDiscount * 0.07;
             const grandTotal = totalAfterDiscount + vat;
+
+            // ดึงค่าเลขที่ใบแจ้งหนี้ พร้อมใส่ IV ถ้ามีการกรอกข้อมูล
+            const rawInvNo = document.getElementById('invNo').value;
+            const displayInvNo = rawInvNo ? 'IV' + rawInvNo : '-';
+
+            // เดือนและปีปัจจุบัน
+            const currentMonthYear = getCurrentMonthYearThai();
 
             configs.forEach(conf => {
                 const page = document.createElement('div');
@@ -233,13 +298,14 @@
                                 </tr>
                                 <tr>
                                     <td class="align-top pt-2">เลขประจำตัวผู้เสียภาษี<br><span class="text-[9px]">Tax ID.</span></td>
-                                    <td class="pt-2 flex items-center gap-4">
-                                        <span>0 2055 56010 59 3</span>
-                                        <div class="flex items-center gap-1 ml-4">
-                                            <span class="border border-black px-1 text-center w-4 h-4 leading-none inline-block">/</span> สำนักงานใหญ่
-                                        </div>
-                                        <div class="flex items-center gap-1 ml-2">
-                                            <span class="border border-black px-1 text-center w-4 h-4 leading-none inline-block">&nbsp;</span> สาขาที่ <span class="border-b border-black w-10 inline-block"></span>
+                                    <td class="pt-2">
+                                        <div class="flex items-center whitespace-nowrap">
+                                            <span>0 2055 56010 59 3</span>
+                                            <span class="border border-black px-1 text-center w-4 h-4 leading-none inline-block ml-4">/</span> 
+                                            <span class="ml-1">สำนักงานใหญ่</span>
+                                            <span class="border border-black px-1 text-center w-4 h-4 leading-none inline-block ml-4">&nbsp;</span> 
+                                            <span class="ml-1">สาขาที่</span> 
+                                            <span class="border-b border-black w-10 inline-block ml-1"></span>
                                         </div>
                                     </td>
                                 </tr>
@@ -247,9 +313,9 @@
                         </div>
                         <div class="w-1/3 p-3">
                             <table class="w-full h-full">
-                                <tr><td>เลขที่<br><span class="text-[9px]">No.</span></td><td class="text-right font-bold text-sm">${document.getElementById('invNo').value || '-'}</td></tr>
+                                <tr><td>เลขที่<br><span class="text-[9px]">No.</span></td><td class="text-right font-bold text-sm">${displayInvNo}</td></tr>
                                 <tr><td class="pt-2">วันที่<br><span class="text-[9px]">Date</span></td><td class="text-right pt-2">${document.getElementById('invDate').value || '-'}</td></tr>
-                                <tr><td class="pt-2">เครดิต<br><span class="text-[9px]">Credit</span></td><td class="text-right pt-2">${document.getElementById('creditTerm').value || '-'}</td></tr>
+                                <tr><td class="pt-2">เครดิต<br><span class="text-[9px]">Credit</span></td><td class="text-right pt-2">30 วัน</td></tr>
                                 <tr><td class="pt-2">วันครบกำหนด<br><span class="text-[9px]">Due date</span></td><td class="text-right pt-2"></td></tr>
                             </table>
                         </div>
@@ -328,14 +394,14 @@
                         <div class="p-2 border-r theme-border flex flex-col justify-between h-24">
                             <div class="text-center font-bold text-black">ได้รับสินค้าตามรายการข้างบนไว้เรียบร้อยแล้ว</div>
                             <div>
-                                <div class="flex mb-1 text-black"><span class="w-16">ผู้รับสินค้า</span><span class="border-b border-black flex-grow"></span></div>
-                                <div class="flex text-black"><span class="w-16">วันที่</span><span class="border-b border-black flex-grow"></span></div>
+                                <div class="flex mb-1 text-black items-end"><span class="w-16 pb-1">ผู้รับสินค้า</span><span class="border-b border-black flex-grow text-center pb-1"></span></div>
+                                <div class="flex text-black items-end"><span class="w-16 pb-1">วันที่</span><div class="flex-grow border-b border-black text-center text-[10px] pb-1">&nbsp;&nbsp;&nbsp;&nbsp; / ${currentMonthYear}</div></div>
                             </div>
                         </div>
                         <div class="p-2 border-r theme-border flex flex-col justify-end h-24">
                             <div>
-                                <div class="flex mb-1 text-black"><span class="w-16">ผู้ส่งสินค้า</span><span class="border-b border-black flex-grow"></span></div>
-                                <div class="flex text-black"><span class="w-16">วันที่</span><span class="border-b border-black flex-grow"></span></div>
+                                <div class="flex mb-1 text-black items-end"><span class="w-16 pb-1">ผู้ส่งสินค้า</span><span class="border-b border-black flex-grow text-center pb-1"></span></div>
+                                <div class="flex text-black items-end"><span class="w-16 pb-1">วันที่</span><div class="flex-grow border-b border-black text-center text-[10px] pb-1">.... / ${currentMonthYear}</div></div>
                             </div>
                         </div>
                         <div class="p-2 flex flex-col justify-between h-24 text-center">
@@ -353,13 +419,14 @@
 
         async function saveToDatabase() {
             const scriptURL = 'https://script.google.com/macros/s/AKfycby_uqrQDEI1PbLriTlg4I3vjyZ-BLgH7JJZqBf-I3xPQz3bPLLKL6ffqygmuA5Ky1Jl/exec';
-            const invNo = document.getElementById('invNo').value;
+            const invNoBase = document.getElementById('invNo').value;
             
-            if(!invNo) { 
+            if(!invNoBase) { 
                 alert('กรุณากรอกเลขที่ใบเสร็จก่อนบันทึกครับ'); 
                 return; 
             }
 
+            const invNo = 'IV' + invNoBase; // เพิ่ม IV ก่อนบันทึก
             const subTotal = items.reduce((s, i) => s + i.total, 0);
             const discountPercent = parseFloat(document.getElementById('discountPercent').value) || 0;
             const discountAmt = subTotal * (discountPercent / 100);
@@ -425,8 +492,6 @@
             }
             return output;
         }
-        
-        renderPages();
     </script>
 </body>
 </html>
