@@ -142,7 +142,7 @@
             } catch (err) { console.error("Error fetching data:", err); }
         }
 
-        // ระบบบีบอัดภาพและเซฟลง Cloud อัตโนมัติ
+        // ระบบบีบอัดภาพและเซฟลง Cloud อัตโนมัติ (แก้ไขพื้นหลังดำแล้ว)
         function uploadLogoToCloud(event, key) {
             const file = event.target.files[0]; if(!file) return;
             const statusEl = key === 'company_logo' ? document.getElementById('logoStatus') : document.getElementById('isoStatus');
@@ -156,7 +156,14 @@
                     const MAX_WIDTH = key === 'company_logo' ? 400 : 200; // ย่อขนาดให้พอดี
                     const scaleSize = MAX_WIDTH / img.width;
                     canvas.width = MAX_WIDTH; canvas.height = img.height * scaleSize;
-                    const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    const ctx = canvas.getContext('2d'); 
+                    
+                    // --- เพิ่มส่วนนี้เพื่อแก้ปัญหาพื้นหลังดำ ---
+                    ctx.fillStyle = '#FFFFFF'; // กำหนดสีพื้นหลังเป็นสีขาว
+                    ctx.fillRect(0, 0, canvas.width, canvas.height); // เทสีขาวลงไปก่อน
+                    // ------------------------------------
+                    
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     const base64Str = canvas.toDataURL('image/jpeg', 0.8);
                     
                     fetch(SCRIPT_URL, {
