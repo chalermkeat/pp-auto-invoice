@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบออกใบกำกับภาษี - PRO VERSION</title>
+    <title>ระบบออกใบกำกับภาษี - SUPER PRO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -27,10 +27,7 @@
         @media print {
             .no-print { display: none !important; }
             
-            @page { 
-                size: A4 portrait; 
-                margin: 0mm; 
-            }
+            @page { size: A4 portrait; margin: 0mm; }
             
             body { 
                 background: white; 
@@ -69,9 +66,9 @@
 </head>
 <body class="bg-gray-100 pb-20">
 
-    <div class="no-print max-w-5xl mx-auto p-6 bg-white shadow-md mt-5 rounded-lg border-t-4 border-blue-600">
+    <div class="no-print max-w-5xl mx-auto p-6 bg-white shadow-md mt-5 rounded-lg border-t-4 border-blue-600 relative">
         <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-blue-900">ระบบจัดการใบกำกับภาษี (PRO)</h1>
+            <h1 class="text-2xl font-bold text-blue-900">ระบบจัดการใบกำกับภาษี (SUPER PRO)</h1>
             <div class="space-x-2">
                 <button onclick="clearForm()" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 font-bold shadow">🔄 เริ่มใบใหม่</button>
                 <button onclick="saveToDatabase()" id="btnSave" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700 font-bold shadow">💾 บันทึกข้อมูล</button>
@@ -105,10 +102,10 @@
                 </div>
                 
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">เลขที่ใบเสร็จ (เช่น 6903010)</label>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">เลขที่ใบเสร็จ (รันอัตโนมัติ)</label>
                     <div class="flex items-center border rounded border-gray-300 bg-white">
                         <span class="px-3 py-2 bg-gray-200 border-r border-gray-300 font-bold text-gray-700">IV</span>
-                        <input type="text" id="invNo" placeholder="เลขที่เอกสาร" class="p-2 w-full outline-none" onkeyup="calculateAndRender()">
+                        <input type="text" id="invNo" placeholder="กำลังดึงเลขล่าสุด..." class="p-2 w-full outline-none" onkeyup="calculateAndRender()">
                     </div>
                 </div>
 
@@ -127,14 +124,17 @@
         <div class="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-100">
             <div class="flex justify-between items-end mb-2">
                 <h2 class="font-bold text-lg text-blue-900">รายการสินค้า</h2>
-                <button onclick="addBlankRow()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-bold text-sm shadow-sm">+ เพิ่มแถวใหม่</button>
+                <div class="space-x-2">
+                    <button onclick="openProductModal()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 font-bold text-sm shadow-sm">📦 + เพิ่มสินค้าใหม่</button>
+                    <button onclick="addBlankRow()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-bold text-sm shadow-sm">📝 + เพิ่มแถวรายการ</button>
+                </div>
             </div>
             
             <table class="w-full border-collapse bg-white shadow-sm">
                 <thead><tr class="bg-blue-200 text-sm">
-                    <th class="border-gray p-2 border">รหัสสินค้า (เลือก)</th>
-                    <th class="border-gray p-2 border w-2/5">รายละเอียด + จำนวน Box</th>
-                    <th class="border-gray p-2 border w-20">จำนวน</th>
+                    <th class="border-gray p-2 border w-1/4">รหัสสินค้า (เลือก)</th>
+                    <th class="border-gray p-2 border w-1/3">รายละเอียด</th>
+                    <th class="border-gray p-2 border w-24">จำนวนตัว</th>
                     <th class="border-gray p-2 border w-20">หน่วย</th>
                     <th class="border-gray p-2 border w-24">ราคา/หน่วย</th>
                     <th class="border-gray p-2 border w-24">รวมเงิน</th>
@@ -146,16 +146,45 @@
         </div>
     </div>
 
+    <div id="productModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded shadow-lg w-96 border-t-4 border-purple-600">
+            <h3 class="font-bold text-xl text-purple-900 mb-4">📦 เพิ่มรายการสินค้าใหม่เข้าคลัง</h3>
+            <div class="mb-2">
+                <label class="block text-xs font-bold text-gray-600 mb-1">รหัสสินค้า *</label>
+                <input type="text" id="newPCode" placeholder="เช่น 71911-XXXXX" class="w-full border p-2 rounded bg-gray-50 focus:bg-white">
+            </div>
+            <div class="mb-2">
+                <label class="block text-xs font-bold text-gray-600 mb-1">รายละเอียดสินค้า *</label>
+                <input type="text" id="newPDesc" placeholder="ชื่อ/รายละเอียดสินค้า" class="w-full border p-2 rounded bg-gray-50 focus:bg-white">
+            </div>
+            <div class="mb-2">
+                <label class="block text-xs font-bold text-gray-600 mb-1">ราคาต่อหน่วย *</label>
+                <input type="number" id="newPPrice" placeholder="เช่น 45.50" class="w-full border p-2 rounded bg-gray-50 focus:bg-white">
+            </div>
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-gray-600 mb-1">จำนวนตัวต่อ 1 Box (เพื่อคำนวณอัตโนมัติ) *</label>
+                <input type="number" id="newPQtyPerBox" placeholder="เช่น 30" class="w-full border p-2 rounded bg-gray-50 focus:bg-white border-purple-300">
+            </div>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeProductModal()" class="px-4 py-2 bg-gray-300 text-gray-800 font-bold rounded hover:bg-gray-400">ยกเลิก</button>
+                <button onclick="saveNewProduct()" class="px-4 py-2 bg-purple-600 text-white font-bold rounded hover:bg-purple-700 shadow">บันทึกสินค้า</button>
+            </div>
+        </div>
+    </div>
+
     <div id="printArea"></div>
 
     <script>
-        // ฐานข้อมูลรหัสสินค้า
-        const productDatabase = {
-            "71911-X7U00": { desc: "STAY,FR SEAT HEADREST EFC", price: 59.47 },
-            "71911-X7U19": { desc: "STAY,RR SEAT HEADREST EFC", price: 3.76 },
-            "71911-X7A06": { desc: "STAY,FR SEAT HEADREST IMV", price: 38.34 },
-            "71911-X1V23": { desc: "STAY,FR SEAT HEADREST EFC", price: 34.25 }
+        // ฐานข้อมูลรหัสสินค้าเริ่มต้น (ถ้าไม่มีใน LocalStorage)
+        const defaultProducts = {
+            "71911-X7U00": { desc: "STAY,FR SEAT HEADREST EFC", price: 59.47, qtyPerBox: 30 },
+            "71911-X7U19": { desc: "STAY,RR SEAT HEADREST EFC", price: 3.76, qtyPerBox: 40 },
+            "71911-X7A06": { desc: "STAY,FR SEAT HEADREST IMV", price: 38.34, qtyPerBox: 40 },
+            "71911-X1V23": { desc: "STAY,FR SEAT HEADREST EFC", price: 34.25, qtyPerBox: 50 }
         };
+
+        // โหลดข้อมูลสินค้าจากเครื่อง ถ้ามีก็ใช้ ถ้าไม่มีก็ใช้ค่าเริ่มต้น
+        let productDatabase = JSON.parse(localStorage.getItem('pp_products')) || defaultProducts;
 
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby_uqrQDEI1PbLriTlg4I3vjyZ-BLgH7JJZqBf-I3xPQz3bPLLKL6ffqygmuA5Ky1Jl/exec';
 
@@ -168,20 +197,92 @@
             document.getElementById('invDate').valueAsDate = new Date();
             for(let i=0; i<3; i++) { addBlankRow(); }
             calculateAndRender();
-            fetchHistory();
+            fetchHistory(); // ดึงประวัติและรันเลขให้อัตโนมัติ
         };
 
+        // ==========================================
+        // Modal จัดการเพิ่มสินค้าใหม่
+        // ==========================================
+        function openProductModal() { document.getElementById('productModal').classList.remove('hidden'); }
+        function closeProductModal() { 
+            document.getElementById('productModal').classList.add('hidden');
+            document.getElementById('newPCode').value = '';
+            document.getElementById('newPDesc').value = '';
+            document.getElementById('newPPrice').value = '';
+            document.getElementById('newPQtyPerBox').value = '';
+        }
+        function saveNewProduct() {
+            const code = document.getElementById('newPCode').value.trim();
+            const desc = document.getElementById('newPDesc').value.trim();
+            const price = parseFloat(document.getElementById('newPPrice').value) || 0;
+            const qtyPerBox = parseFloat(document.getElementById('newPQtyPerBox').value) || 0;
+
+            if (!code || !desc || !price || !qtyPerBox) {
+                alert("⚠️ กรุณากรอกข้อมูลให้ครบทุกช่องครับ");
+                return;
+            }
+
+            // บันทึกลงตัวแปรและ LocalStorage
+            productDatabase[code] = { desc, price, qtyPerBox };
+            localStorage.setItem('pp_products', JSON.stringify(productDatabase));
+
+            // อัปเดต Dropdown ทุกช่องที่มีอยู่ในตารางทันที
+            document.querySelectorAll('.pCode').forEach(select => {
+                const currentVal = select.value;
+                select.innerHTML = '<option value="">- เลือกรหัส -</option>';
+                for(let c in productDatabase) {
+                    select.innerHTML += `<option value="${c}" ${c === currentVal ? 'selected' : ''}>${c}</option>`;
+                }
+            });
+
+            closeProductModal();
+            alert("✅ บันทึกสินค้าใหม่เข้าสู่ระบบเรียบร้อยแล้ว!");
+        }
+
+        // ==========================================
+        // ดึงประวัติ & Auto-Running Number
+        // ==========================================
         async function fetchHistory() {
             try {
                 const response = await fetch(SCRIPT_URL);
                 invoiceHistory = await response.json();
+                
                 const dropdown = document.getElementById('historyDropdown');
                 dropdown.innerHTML = '<option value="">-- เลือกบิลที่ต้องการแก้ไข --</option>';
-                invoiceHistory.reverse().forEach(inv => {
+                
+                invoiceHistory.slice().reverse().forEach(inv => {
                     dropdown.innerHTML += `<option value="${inv.invNo}">${inv.invNo}</option>`;
                 });
+
+                generateNextInvNo(); // เรียกฟังก์ชันรันเลขที่เอกสารใหม่
             } catch (error) {
                 document.getElementById('historyDropdown').innerHTML = '<option value="">(โหลดประวัติไม่สำเร็จ)</option>';
+                document.getElementById('invNo').placeholder = "ระบุเลขที่เอกสารเอง";
+            }
+        }
+
+        // ระบบรันเลขที่เอกสาร +1 อัตโนมัติ
+        function generateNextInvNo() {
+            if (!invoiceHistory || invoiceHistory.length === 0) {
+                document.getElementById('invNo').value = "6903001"; // ค่าเริ่มต้นถ้าไม่มีข้อมูล
+                calculateAndRender();
+                return;
+            }
+            
+            let maxNo = 0;
+            invoiceHistory.forEach(inv => {
+                // แยกเอาเฉพาะตัวเลขด้านหลังคำว่า IV ออกมา
+                const numMatch = inv.invNo.match(/\d+$/);
+                if(numMatch) {
+                    const num = parseInt(numMatch[0], 10);
+                    if(num > maxNo) maxNo = num;
+                }
+            });
+
+            // ถ้าช่องเลขที่ยังว่างอยู่ (หรือผู้ใช้เพิ่งกดเริ่มใบใหม่) ให้ใส่เลข +1 เข้าไป
+            if(maxNo > 0 && !document.getElementById('invNo').value) {
+                document.getElementById('invNo').value = (maxNo + 1).toString();
+                calculateAndRender();
             }
         }
 
@@ -207,7 +308,7 @@
                 for(let i=currentRows; i<3; i++) { addBlankRow(); }
 
                 calculateAndRender();
-                alert(`ดึงข้อมูลใบเสร็จ ${data.invNo} สำเร็จ! คุณสามารถแก้ไขและกดบันทึกทับได้เลย`);
+                alert(`ดึงข้อมูลใบเสร็จ ${data.invNo} สำเร็จ! แก้ไขและกดบันทึกทับได้เลยครับ`);
             }
         }
 
@@ -219,6 +320,8 @@
             
             document.getElementById('inputRowsContainer').innerHTML = '';
             for(let i=0; i<3; i++) { addBlankRow(); }
+            
+            generateNextInvNo(); // เรียกให้รันเลขใหม่
             calculateAndRender();
         }
 
@@ -226,18 +329,10 @@
             const tr = document.createElement('tr');
             tr.className = "item-row";
             
-            // Dropdown รหัสสินค้า
             let optionsHtml = '<option value="">- เลือกรหัส -</option>';
             for(let code in productDatabase) {
                 let selected = (data && data.code === code) ? 'selected' : '';
                 optionsHtml += `<option value="${code}" ${selected}>${code}</option>`;
-            }
-
-            // Dropdown จำนวน Box (1-100)
-            let boxOptionsHtml = '<option value="">- ระบุ Box -</option>';
-            for(let i = 1; i <= 100; i++) {
-                let selectedBox = (data && data.box == i) ? 'selected' : '';
-                boxOptionsHtml += `<option value="${i}" ${selectedBox}>${i} Box</option>`;
             }
 
             tr.innerHTML = `
@@ -247,14 +342,10 @@
                     </select>
                 </td>
                 <td class="border-gray p-1 border">
-                    <div class="flex gap-1">
-                        <input type="text" class="pDesc w-full p-1 border rounded" value="${data ? data.desc : ''}" onkeyup="calculateAndRender()">
-                        <select class="pBox border rounded bg-white text-xs p-1" onchange="calculateAndRender()">
-                            ${boxOptionsHtml}
-                        </select>
-                    </div>
+                    <input type="text" class="pDesc w-full p-1 border rounded font-bold text-gray-800" value="${data ? data.desc : ''}" onkeyup="calculateAndRender()">
+                    <div class="boxDisplay text-[11px] text-blue-600 font-bold mt-1"></div>
                 </td>
-                <td class="border-gray p-1 border"><input type="number" class="pQty w-full p-1 border rounded text-center focus:ring-2 focus:ring-blue-500" value="${data ? data.qty : ''}" onchange="calculateAndRender()" onkeyup="calculateAndRender()"></td>
+                <td class="border-gray p-1 border"><input type="number" class="pQty w-full p-1 border rounded text-center focus:ring-2 focus:ring-blue-500 font-bold" value="${data ? data.qty : ''}" onchange="calculateAndRender()" onkeyup="calculateAndRender()"></td>
                 <td class="border-gray p-1 border"><input type="text" class="pUnit w-full p-1 border rounded text-center" value="${data ? data.unit : 'PCS.'}" onkeyup="calculateAndRender()"></td>
                 <td class="border-gray p-1 border"><input type="number" step="0.01" class="pPrice w-full p-1 border rounded text-right" value="${data ? data.price : ''}" onchange="calculateAndRender()" onkeyup="calculateAndRender()"></td>
                 <td class="border-gray p-1 border text-right font-bold pTotal bg-gray-50">0.00</td>
@@ -269,12 +360,10 @@
             if(code && productDatabase[code]) {
                 tr.querySelector('.pDesc').value = productDatabase[code].desc;
                 tr.querySelector('.pPrice').value = productDatabase[code].price;
-                tr.querySelector('.pBox').value = ""; // รีเซ็ต Box ทุกครั้งที่เปลี่ยนรหัสใหม่
-                tr.querySelector('.pQty').focus();
+                tr.querySelector('.pQty').focus(); // โฟกัสไปที่จำนวน
             } else {
                 tr.querySelector('.pDesc').value = '';
                 tr.querySelector('.pPrice').value = '';
-                tr.querySelector('.pBox').value = '';
             }
             calculateAndRender();
         }
@@ -287,19 +376,29 @@
             rows.forEach(row => {
                 const code = row.querySelector('.pCode').value;
                 const desc = row.querySelector('.pDesc').value;
-                const box = row.querySelector('.pBox').value;
                 const qty = parseFloat(row.querySelector('.pQty').value) || 0;
                 const unit = row.querySelector('.pUnit').value;
                 const price = parseFloat(row.querySelector('.pPrice').value) || 0;
 
-                // ประกอบร่างรายละเอียดสินค้า + Box
+                let boxText = "";
                 let fullDesc = desc;
-                if (box) fullDesc += ` ${box} Box`;
+
+                // ระบบคำนวณจำนวน Box อัตโนมัติ (หารด้วย qtyPerBox)
+                if (code && productDatabase[code] && productDatabase[code].qtyPerBox && qty > 0) {
+                    let boxCount = qty / productDatabase[code].qtyPerBox;
+                    boxCount = Math.round(boxCount * 100) / 100; // เผื่อทศนิยม
+                    boxText = `(${boxCount} Box)`;
+                    fullDesc += ` ${boxText}`; // เอาไปต่อท้ายสำหรับพิมพ์ลงบิล
+                }
+
+                // อัปเดต UI ให้แอดมินเห็นว่าคำนวณได้กี่ Box
+                const boxDisplay = row.querySelector('.boxDisplay');
+                if(boxDisplay) boxDisplay.innerText = boxText;
 
                 if (desc || code) {
                     const itemTotal = Math.round((qty * price) * 100) / 100;
                     if (qty > 0 && price > 0) {
-                        itemsForPrint.push({ code, desc, box, fullDesc, qty, unit, price, total: itemTotal });
+                        itemsForPrint.push({ code, desc, fullDesc, qty, unit, price, total: itemTotal });
                         subTotal += itemTotal;
                     }
                     row.querySelector('.pTotal').innerText = itemTotal.toLocaleString(undefined, {minimumFractionDigits: 2});
