@@ -6,22 +6,56 @@
     <title>ระบบออกใบกำกับภาษี - PRO VERSION</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Sarabun', sans-serif; font-size: 13px; color: #333; }
+    body { font-family: 'Sarabun', sans-serif; font-size: 13px; color: #333; }
+        
+        /* จัดการหน้าตาตอนดูบนเว็บปกติ */
+        .a4-page {
+            width: 210mm; 
+            height: 297mm; /* ล็อกขนาด A4 เป๊ะๆ */
+            padding: 12mm 15mm; 
+            margin: 10px auto;
+            background: white; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            position: relative; 
+            display: flex; 
+            flex-direction: column;
+            box-sizing: border-box; /* บังคับไม่ให้ padding ดันขนาดกระดาษล้น */
+        }
+
+        /* จัดการหน้าตาตอนกด Print (สำคัญมาก) */
         @media print {
             .no-print { display: none; }
-            .a4-page { margin: 0; box-shadow: none; page-break-after: always; }
-            body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            
+            /* กำหนดขนาดกระดาษและปิด Margin ของเบราว์เซอร์ (ตัวการที่ทำให้มีวันที่/URL โผล่มา) */
+            @page { 
+                size: A4 portrait; 
+                margin: 0mm; 
+            }
+            
+            body { 
+                background: white; 
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact; 
+                margin: 0;
+            }
+            
+            .a4-page { 
+                margin: 0; 
+                box-shadow: none; 
+                page-break-after: always; /* บังคับขึ้นแผ่นใหม่เมื่อจบหน้า */
+                page-break-inside: avoid; /* ป้องกันเนื้อหาขาดครึ่งหน้า */
+            }
+            
+            /* ป้องกันไม่ให้มีแผ่นเปล่าๆ โผล่มาแผ่นสุดท้าย */
+            .a4-page:last-child {
+                page-break-after: auto;
+            }
         }
-        .a4-page {
-            width: 210mm; height: 297mm; padding: 12mm 15mm; margin: 10px auto;
-            background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            position: relative; display: flex; flex-direction: column;
-            page-break-after: always;
-        }
+        
         table { border-collapse: collapse; }
         .border-gray { border-color: #cbd5e1; }
         
+        /* Theme สีประจำเอกสาร */
         .page-1 .theme-bg { background-color: #8B0000 !important; color: white !important; }
         .page-1 .theme-border { border-color: #8B0000 !important; }
         .page-2 .theme-bg { background-color: #E65C00 !important; color: white !important; }
@@ -31,7 +65,6 @@
         .page-1 table.product-table th, .page-1 table.product-table td { border: 1px solid #8B0000; }
         .page-2 table.product-table th, .page-2 table.product-table td { border: 1px solid #E65C00; }
         .page-3 table.product-table th, .page-3 table.product-table td { border: 1px solid #0047AB; }
-    </style>
 </head>
 <body class="bg-gray-100 pb-20">
 
