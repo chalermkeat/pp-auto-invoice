@@ -418,41 +418,62 @@
         }
 
         async function saveToDatabase() {
+            // URL จาก Google Apps Script เดิมของคุณ
             const scriptURL = 'https://script.google.com/macros/s/AKfycby_uqrQDEI1PbLriTlg4I3vjyZ-BLgH7JJZqBf-I3xPQz3bPLLKL6ffqygmuA5Ky1Jl/exec';
             const invNoBase = document.getElementById('invNo').value;
             
+            // เช็คว่ากรอกข้อมูลครบไหม
             if(!invNoBase) { 
-                alert('กรุณากรอกเลขที่ใบเสร็จก่อนบันทึกครับ'); 
+                alert('⚠️ กรุณากรอกเลขที่ใบเสร็จก่อนบันทึกครับ'); 
+                document.getElementById('invNo').focus();
+                return; 
+            }
+            if(items.length === 0) {
+                alert('⚠️ กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการครับ'); 
                 return; 
             }
 
-            const invNo = 'IV' + invNoBase; // เพิ่ม IV ก่อนบันทึก
+            const invNo = 'IV' + invNoBase; // ใส่ IV นำหน้า
             const subTotal = items.reduce((s, i) => s + i.total, 0);
             const discountPercent = parseFloat(document.getElementById('discountPercent').value) || 0;
             const discountAmt = subTotal * (discountPercent / 100);
             const totalAfterDiscount = subTotal - discountAmt;
             const grandTotal = totalAfterDiscount + (totalAfterDiscount * 0.07);
 
+            // เตรียมข้อมูลส่งไปที่เซิร์ฟเวอร์ (เพิ่ม items เข้าไปด้วย)
             const data = {
                 invNo: invNo,
                 custName: "บริษัท เอ็น.เอ.อินเตอร์ อิเล็คโทรเพลทติ้ง จำกัด",
-                grandTotal: grandTotal
+                grandTotal: grandTotal,
+                items: items // ส่งรายการสินค้าทั้งหมดไปบันทึก
             };
 
             const btn = document.querySelector('button[onclick="saveToDatabase()"]');
-            btn.innerHTML = 'กำลังบันทึก...';
+            btn.innerHTML = '⏳ กำลังตรวจสอบข้อมูล...';
             btn.disabled = true;
 
             try {
+                // ส่งข้อมูลไปที่ Google Apps Script แบบ Background
                 const response = await fetch(scriptURL, {
                     method: 'POST',
                     body: JSON.stringify(data),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' } // ป้องกันปัญหา CORS
                 });
-                alert('✅ บันทึกข้อมูลลง Google Sheets สำเร็จ!');
+                
+                const result = await response.json(); // อ่านค่าที่ Google ส่งกลับมา
+
+                if (result.status === 'duplicate') {
+                    alert('❌ ไม่สามารถบันทึกได้!\nเลขที่ใบเสร็จ " ' + invNo + ' " ถูกใช้งานไปแล้ว กรุณาตรวจสอบและเปลี่ยนเลขที่ใหม่ครับ');
+                } else if (result.status === 'success') {
+                    alert('✅ บันทึกข้อมูลลง Google Sheets สำเร็จเรียบร้อย!');
+                    // ตัวเลือกเพิ่มเติม: อยากให้พอบันทึกเสร็จแล้วล้างข้อมูลในหน้าเว็บอัตโนมัติไหมครับ?
+                } else {
+                    alert('❌ เกิดข้อผิดพลาดจากระบบ: ' + result.message);
+                }
+
             } catch (error) {
                 console.error('Error:', error);
-                alert('❌ ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง');
+                alert('❌ ไม่สามารถเชื่อมต่อกับฐานข้อมูลได้ กรุณาลองใหม่อีกครั้ง');
             } finally {
                 btn.innerHTML = '💾 บันทึกลง Google Sheets';
                 btn.disabled = false;
