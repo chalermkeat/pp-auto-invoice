@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบออกใบกำกับภาษี - Web App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; font-size: 14px; }
+        @media print {
+            .no-print { display: none; }
+            .a4-page { margin: 0; box-shadow: none; page-break-after: always; }
+            body { background: white; }
+        }
+        .a4-page {
+            width: 210mm; height: 296mm; padding: 15mm; margin: 10px auto;
+            background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            position: relative; display: flex; flex-direction: column;
+        }
+        table th, table td { border: 1px solid #cbd5e1; padding: 4px 8px; }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="no-print max-w-5xl mx-auto p-6 bg-white shadow-md mt-5 rounded-lg border-t-4 border-blue-600">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-blue-900">ระบบสร้างใบกำกับภาษี & บันทึกข้อมูล</h1>
+            <div class="space-x-2">
+                <button onclick="saveToDatabase()" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700 font-bold shadow">💾 บันทึกลง Google Sheets</button>
+                <button onclick="window.print()" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 font-bold shadow">🖨️ พิมพ์เอกสาร (PDF)</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4 mb-4">
+            <input type="text" id="invNo" placeholder="เลขที่ (e.g. IV6903010)" class="border p-2 rounded bg-gray-50">
+            <input type="date" id="invDate" class="border p-2 rounded bg-gray-50">
+            <input type="text" id="creditTerm" placeholder="เครดิต (เช่น 30 วัน)" class="border p-2 rounded bg-gray-50">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <input type="text" id="custName" placeholder="ชื่อบริษัทลูกค้า" class="border p-2 rounded bg-gray-50 col-span-2">
+            <textarea id="custAddr" placeholder="ที่อยู่ลูกค้า" class="border p-2 rounded bg-gray-50 col-span-2" rows="2"></textarea>
+            <input type="text" id="custTaxId" placeholder="เลขประจำตัวผู้เสียภาษี" class="border p-2 rounded bg-gray-50">
+            <input type="text" id="custBranch" placeholder="สาขา (เช่น สำนักงานใหญ่)" class="border p-2 rounded bg-gray-50">
+        </div>
+
+        <div class="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-100">
+            <h2 class="font-bold mb-2">เพิ่มรายการสินค้า</h2>
+            <div class="grid grid-cols-5 gap-2 mb-2">
+                <input type="text" id="pCode" placeholder="รหัสสินค้า" class="border p-2 rounded">
+                <input type="text" id="pDesc" placeholder="รายละเอียด" class="border p-2 rounded col-span-2">
+                <input type="number" id="pQty" placeholder="จำนวน" class="border p-2 rounded">
+                <input type="number" id="pPrice" placeholder="ราคา/หน่วย" class="border p-2 rounded">
+            </div>
+            <button onclick="addItem()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-bold text-sm">+ เพิ่มรายการ</button>
+        </div>
+
+        <table class="w-full mt-4 border-collapse bg-white">
+            <thead><tr class="bg-gray-100 text-sm">
+                <th>รหัส</th><th>รายละเอียด</th><th>จำนวน</th><th>ราคา</th><th>รวม</th><th>ลบ</th>
+            </tr></thead>
+            <tbody id="inputList" class="text-sm"></tbody>
+        </table>
+    </div>
+
+    <div id="printArea"></div>
+
+    <script>
+        let items = [];
+
+        function addItem() {
+            const code = document.getElementById('pCode').value;
+            const desc = document.getElementById('pDesc').value;
+            const qty = parseFloat(document.getElementById('pQty').value) || 0;
+            const price = parseFloat(document.getElementById('pPrice').value) || 0;
+
+            if(desc && qty > 0) {
+                items.push({ code, desc, qty, price, total: qty * price });
+                updateView();
+                document.getElementById('pCode').value = '';
+                document.getElementById('pDesc').value = '';
+                document.getElementById('pQty').value = '';
+                document.getElementById('pPrice').value = '';
+            }
+        }
+
+        function updateView() {
+            const list = document.getElementById('inputList');
+            list.innerHTML = items.map((item, i) => `
+                <tr>
+                    <td class="text-center">${item.code}</td>
+                    <td>${item.desc}</td>
+                    <td class="text-center">${item.qty}</td>
+                    <td class="text-right">${item.price.toLocaleString()}</td>
+                    <td class="text-right font-bold">${item.total.toLocaleString()}</td>
+                    <td class="text-center"><button onclick="items.splice(${i},1); updateView();" class="text-red-500 font-bold">X</button></td>
+                </tr>
+            `).join('');
+            renderPages();
+        }
+
+        function renderPages() {
+            const printArea = document.getElementById('printArea');
+            printArea.innerHTML = '';
+            
+            const configs = [
+                { title: 'ต้นฉบับใบกำกับภาษี / ใบส่งสินค้า', sub: 'ต้นฉบับสำหรับลูกค้า', color: '#800000' },
+                { title: 'สำเนาใบกำกับภาษี / ใบส่งสินค้า', sub: 'สำเนาสำหรับลูกค้า', color: '#FF8C00' },
+                { title: 'สำเนาใบกำกับภาษี / ใบส่งสินค้า', sub: 'สำหรับบัญชี', color: '#00008B' }
+            ];
+
+            const subTotal = items.reduce((s, i) => s + i.total, 0);
+            const vat = subTotal * 0.07;
+            const grandTotal = subTotal + vat;
+
+            configs.forEach(conf => {
+                const page = document.createElement('div');
+                page.className = 'a4-page';
+                page.style.borderTop = `10px solid ${conf.color}`;
+                
+                page.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex gap-4">
+                            <div class="w-16 h-16 bg-gray-200 flex items-center justify-center text-[10px] text-center border">LOGO</div>
+                            <div>
+                                <h2 class="font-bold text-lg text-blue-900">บริษัท พีพี ออโต้ ซัพพลาย จำกัด</h2>
+                                <p class="text-xs">PP AUTO SUPPLIES CO., LTD.</p>
+                                <p class="text-[10px] mt-1">471/1 หมู่ที่ 5 ต.หนองภูมิ อ.เกาะจันทร์ จ.ชลบุรี 20240<br>เลขประจำตัวผู้เสียภาษีอากร: 0205566032069</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="inline-block px-4 py-1 text-white text-xs font-bold" style="background:${conf.color}">${conf.sub}</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-blue-500 text-white text-center py-1 font-bold mb-4">
+                        ${conf.title.toUpperCase()}
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 text-xs mb-4">
+                        <div class="border p-2 rounded">
+                            <p><strong>นามลูกค้า:</strong> ${document.getElementById('custName').value || '-'}</p>
+                            <p><strong>ที่อยู่:</strong> ${document.getElementById('custAddr').value || '-'}</p>
+                            <p class="mt-2"><strong>เลขประจำตัวผู้เสียภาษี:</strong> ${document.getElementById('custTaxId').value || '-'} <span>[ ${document.getElementById('custBranch').value ? '/' : ' '} ] ${document.getElementById('custBranch').value || 'สำนักงานใหญ่'}</span></p>
+                        </div>
+                        <div class="border p-2 rounded">
+                            <div class="flex justify-between"><span>เลขที่:</span> <span>${document.getElementById('invNo').value || '-'}</span></div>
+                            <div class="flex justify-between"><span>วันที่:</span> <span>${document.getElementById('invDate').value || '-'}</span></div>
+                            <div class="flex justify-between"><span>เครดิต:</span> <span>${document.getElementById('creditTerm').value || '-'}</span></div>
+                        </div>
+                    </div>
+
+                    <table class="w-full text-xs flex-grow">
+                        <thead>
+                            <tr class="bg-blue-400 text-white">
+                                <th class="w-10">ลำดับ</th><th>รหัสสินค้า</th><th>รายละเอียด</th><th>จำนวน</th><th>หน่วย</th><th>ราคา/หน่วย</th><th>จำนวนเงิน</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${items.map((item, idx) => `
+                                <tr>
+                                    <td class="text-center">${idx + 1}</td><td class="text-center">${item.code}</td><td>${item.desc}</td>
+                                    <td class="text-center">${item.qty}</td><td class="text-center">PCS.</td>
+                                    <td class="text-right">${item.price.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                    <td class="text-right">${item.total.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <div class="grid grid-cols-2 gap-4 mt-4 text-xs">
+                        <div class="border p-2">
+                            <strong>ตัวอักษร:</strong> (${ThaiBaht(grandTotal)})
+                            <div class="mt-4 text-[10px]">หมายเหตุ: 1. กรณีชำระเงินด้วยเช็ค... 2. สินค้าตามรายการ...</div>
+                        </div>
+                        <div class="space-y-1">
+                            <div class="flex justify-between"><span>รวมเงิน</span> <span>${subTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
+                            <div class="flex justify-between font-bold"><span>ภาษีมูลค่าเพิ่ม 7%</span> <span>${vat.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
+                            <div class="flex justify-between border-t-2 border-black pt-1 font-bold text-sm"><span>จำนวนเงินรวมทั้งสิ้น</span> <span>${grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 mt-8 text-[10px] text-center">
+                        <div class="border p-4">____________________<br>ผู้รับสินค้า</div>
+                        <div class="border p-4">____________________<br>ผู้ส่งสินค้า</div>
+                        <div class="border p-4 font-bold text-blue-900 italic">ในนาม บริษัท พีพี ออโต้ ซัพพลาย จำกัด<br><br>____________________<br>ผู้มีอำนาจลงนาม</div>
+                    </div>
+                `;
+                printArea.appendChild(page);
+            });
+        }
+
+        // ==========================================
+        // ส่วนของการส่งข้อมูลไปบันทึกที่ Google Sheets
+        // ==========================================
+        async function saveToDatabase() {
+            // สำคัญ: นำ URL ของ Web App จาก Google Apps Script มาใส่ตรงนี้
+            const scriptURL = 'https://script.google.com/macros/s/AKfycby_uqrQDEI1PbLriTlg4I3vjyZ-BLgH7JJZqBf-I3xPQz3bPLLKL6ffqygmuA5Ky1Jl/exec';
+            
+            const invNo = document.getElementById('invNo').value;
+            const custName = document.getElementById('custName').value;
+            
+            if(!invNo || !custName) {
+                alert('กรุณากรอกเลขที่ใบเสร็จและชื่อลูกค้าก่อนบันทึกครับ');
+                return;
+            }
+
+            const subTotal = items.reduce((s, i) => s + i.total, 0);
+            const grandTotal = subTotal + (subTotal * 0.07);
+
+            const data = {
+                invNo: invNo,
+                custName: custName,
+                grandTotal: grandTotal
+            };
+
+            const btn = document.querySelector('button[onclick="saveToDatabase()"]');
+            btn.innerHTML = 'กำลังบันทึก...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(scriptURL, {
+                    method: 'POST',
+                    body: JSON.stringify(data),
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8',
+                    }
+                });
+                alert('✅ บันทึกข้อมูลลง Google Sheets สำเร็จ!');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ ไม่สามารถบันทึกข้อมูลได้ (ตรวจสอบ URL ของ Web App อีกครั้ง)');
+            } finally {
+                btn.innerHTML = '💾 บันทึกลง Google Sheets';
+                btn.disabled = false;
+            }
+        }
+
+        // ฟังก์ชันแปลงตัวเลขเป็นอักษรไทย
+        function ThaiBaht(Number) {
+            if (Number == 0) return "ศูนย์บาทถ้วน";
+            var number = Number.toFixed(2).split(".");
+            var baht = number[0];
+            var satang = number[1];
+            var output = "";
+            var thaiNumber = ["ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"];
+            var thaiUnit = ["", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน", "ล้าน"];
+
+            for (var i = 0; i < baht.length; i++) {
+                var n = baht.substr(i, 1);
+                if (n != 0) {
+                    if (i == (baht.length - 1) && n == 1 && baht.length > 1) output += "เอ็ด";
+                    else if (i == (baht.length - 2) && n == 2) output += "ยี่สิบ";
+                    else if (i == (baht.length - 2) && n == 1) output += "สิบ";
+                    else output += thaiNumber[n] + thaiUnit[baht.length - i - 1];
+                }
+            }
+            output += "บาท";
+            if (satang == "00") output += "ถ้วน";
+            else {
+                for (var i = 0; i < satang.length; i++) {
+                    var n = satang.substr(i, 1);
+                    if (n != 0) {
+                        if (i == (satang.length - 1) && n == 1) output += "เอ็ด";
+                        else if (i == (satang.length - 2) && n == 2) output += "ยี่สิบ";
+                        else if (i == (satang.length - 2) && n == 1) output += "สิบ";
+                        else output += thaiNumber[n] + thaiUnit[satang.length - i - 1];
+                    }
+                }
+                output += "สตางค์";
+            }
+            return output;
+        }
+    </script>
+</body>
+</html>
