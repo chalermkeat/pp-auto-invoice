@@ -9,31 +9,20 @@
     <style>
         body { font-family: 'Sarabun', sans-serif; font-size: 13px; color: #333; }
         .a4-page { width: 210mm; height: 297mm; padding: 12mm 15mm; margin: 10px auto; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; box-sizing: border-box; }
-        @media print {
-            .no-print { display: none !important; }
-            @page { size: A4 portrait; margin: 0mm; }
-            body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .a4-page { margin: 0 !important; box-shadow: none !important; page-break-after: always; height: 297mm !important; overflow: hidden; page-break-inside: avoid; }
-            #printArea .a4-page:last-child { page-break-after: auto !important; }
-        }
+        @media print { .no-print { display: none !important; } @page { size: A4 portrait; margin: 0mm; } body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .a4-page { margin: 0 !important; box-shadow: none !important; page-break-after: always; height: 297mm !important; overflow: hidden; page-break-inside: avoid; } #printArea .a4-page:last-child { page-break-after: auto !important; } }
         table { border-collapse: collapse; }
-        
-        .page-1 .theme-bg { background-color: #8B0000 !important; color: white !important; }
-        .page-1 .theme-border { border-color: #8B0000 !important; }
-        .page-2 .theme-bg { background-color: #E65C00 !important; color: white !important; }
-        .page-2 .theme-border { border-color: #E65C00 !important; }
-        .page-3 .theme-bg { background-color: #0047AB !important; color: white !important; }
-        .page-3 .theme-border { border-color: #0047AB !important; }
+        .page-1 .theme-bg { background-color: #8B0000 !important; color: white !important; } .page-1 .theme-border { border-color: #8B0000 !important; }
+        .page-2 .theme-bg { background-color: #E65C00 !important; color: white !important; } .page-2 .theme-border { border-color: #E65C00 !important; }
+        .page-3 .theme-bg { background-color: #0047AB !important; color: white !important; } .page-3 .theme-border { border-color: #0047AB !important; }
     </style>
 </head>
 <body class="bg-gray-100 pb-20">
-
     <div class="no-print bg-white shadow-md border-b-4 border-indigo-600 sticky top-0 z-40">
         <div class="max-w-6xl mx-auto flex">
             <div class="px-6 py-4 font-bold text-xl text-indigo-900 border-r bg-indigo-50 flex items-center gap-2">⚙️ Paul's Dev</div>
+            <a href="dashboard.html" class="px-6 py-4 font-bold flex-1 text-center bg-gray-200 text-gray-600 hover:bg-gray-300">📊 Dashboard</a>
             <a href="index.html" class="px-6 py-4 font-bold flex-1 text-center bg-gray-200 text-gray-600 hover:bg-gray-300">📝 1. ออกใบกำกับภาษี</a>
             <a href="billing.html" class="px-6 py-4 font-bold flex-1 text-center bg-indigo-600 text-white border-b-4 border-indigo-900">📅 2. ทำใบวางบิล</a>
-            <a href="#" class="px-6 py-4 font-bold flex-1 text-center bg-gray-200 text-gray-400 cursor-not-allowed">🧾 3. ใบเสร็จรับเงิน</a>
         </div>
     </div>
 
@@ -47,43 +36,34 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-4 gap-4 mb-4 bg-orange-50 p-4 rounded border border-orange-200">
+        <div class="grid grid-cols-5 gap-4 mb-4 bg-orange-50 p-4 rounded border border-orange-200">
             <div>
-                <label class="block text-xs font-bold text-gray-600 mb-1">ดึงประวัติใบวางบิลเก่า</label>
-                <div class="flex gap-1">
-                    <select id="billingHistoryDropdown" class="border p-2 rounded w-full text-sm"><option value="">กำลังโหลดประวัติ...</option></select>
-                    <button onclick="loadBillingNote()" class="bg-orange-500 text-white px-3 py-1 rounded font-bold text-xs shadow-sm">ดึงข้อมูล</button>
-                </div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">เลือกลูกค้า</label>
+                <select id="customerDropdown" class="border p-2 rounded w-full text-sm font-bold text-blue-800" onchange="renderBillingNote()"><option value="">โหลดข้อมูล...</option></select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">ดึงประวัติเก่า</label>
+                <div class="flex gap-1"><select id="billingHistoryDropdown" class="border p-2 rounded w-full text-sm"><option value="">โหลด...</option></select><button onclick="loadBillingNote()" class="bg-orange-500 text-white px-2 py-1 rounded font-bold text-xs shadow-sm">ดึง</button></div>
             </div>
             <div>
                 <label class="block text-xs font-bold text-gray-600 mb-1">เลขที่ใบวางบิล</label>
-                <div class="flex items-center border rounded bg-white">
-                    <span class="px-3 py-2 bg-gray-200 border-r font-bold text-gray-700">BL</span>
-                    <input type="text" id="billNo" placeholder="เช่น 6902001" class="p-2 w-full outline-none" onkeyup="renderBillingNote()">
-                </div>
+                <div class="flex items-center border rounded bg-white"><span class="px-2 py-2 bg-gray-200 border-r font-bold text-gray-700">BL</span><input type="text" id="billNo" class="p-2 w-full outline-none" onkeyup="renderBillingNote()"></div>
             </div>
             <div>
                 <label class="block text-xs font-bold text-gray-600 mb-1">วันที่วางบิล</label>
                 <input type="date" id="billDate" class="border p-2 rounded w-full" onchange="renderBillingNote()">
             </div>
             <div>
-                <label class="block text-xs font-bold text-gray-600 mb-1">ค้นหาบิล IV เพื่อสร้างใหม่</label>
-                <div class="flex gap-2">
-                    <input type="month" id="billMonthSelect" class="border p-2 rounded w-full">
-                    <button onclick="autoFetchBillingData()" class="bg-blue-500 text-white px-4 py-2 rounded font-bold hover:bg-blue-600 shadow-sm whitespace-nowrap">🔍 ค้นหา</button>
-                </div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">ค้นหาบิล IV อัตโนมัติ</label>
+                <div class="flex gap-2"><input type="month" id="billMonthSelect" class="border p-2 rounded w-full"><button onclick="autoFetchBillingData()" class="bg-blue-500 text-white px-3 py-2 rounded font-bold whitespace-nowrap">🔍</button></div>
             </div>
         </div>
 
         <div class="bg-white p-4 rounded-lg border">
             <h3 class="font-bold text-gray-800 mb-2">รายการใบกำกับภาษีในใบวางบิลนี้</h3>
             <table class="w-full border-collapse shadow-sm text-sm">
-                <thead><tr class="bg-gray-200 text-center">
-                    <th class="border-gray p-2 border w-16">ลำดับ</th><th class="border-gray p-2 border">เลขที่ใบกำกับภาษี</th>
-                    <th class="border-gray p-2 border">วันที่เอกสาร</th><th class="border-gray p-2 border">วันครบกำหนด (30วัน)</th>
-                    <th class="border-gray p-2 border text-right">จำนวนเงินรวม (Grand Total)</th><th class="border-gray p-2 border w-10">ลบ</th>
-                </tr></thead>
-                <tbody id="billingRowsContainer"><tr><td colspan="6" class="text-center p-4 text-gray-400">กรุณาเลือกเดือน และกดปุ่ม "ค้นหา"</td></tr></tbody>
+                <thead><tr class="bg-gray-200 text-center"><th class="border-gray p-2 border w-16">ลำดับ</th><th class="border-gray p-2 border">เลขที่ใบกำกับภาษี</th><th class="border-gray p-2 border">วันที่เอกสาร</th><th class="border-gray p-2 border">วันครบกำหนด</th><th class="border-gray p-2 border text-right">จำนวนเงินรวม</th><th class="border-gray p-2 border w-10">ลบ</th></tr></thead>
+                <tbody id="billingRowsContainer"><tr><td colspan="6" class="text-center p-4 text-gray-400">เลือกเดือนและกดปุ่มแว่นขยาย</td></tr></tbody>
             </table>
         </div>
     </div>
@@ -92,58 +72,66 @@
 
     <script>
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby_uqrQDEI1PbLriTlg4I3vjyZ-BLgH7JJZqBf-I3xPQz3bPLLKL6ffqygmuA5Ky1Jl/exec';
-        let invoiceHistory = [];
-        let billingHistory = [];
-        let billingItemsForPrint = [];
+        let invoiceHistory = []; let billingHistory = []; let billingItemsForPrint = [];
+        let customersDatabase = []; let uploadedLogoUrl = ''; let uploadedIsoLogoUrl = '';
 
-        window.onload = function() {
+        window.onload = async function() {
             document.getElementById('billDate').valueAsDate = new Date();
             const today = new Date(); document.getElementById('billMonthSelect').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-            fetchInvoiceHistory();
-            fetchBillingHistory();
+            await fetchCloudData();
         };
 
-        async function fetchInvoiceHistory() {
+        async function fetchCloudData() {
             try {
-                const res = await fetch(SCRIPT_URL + "?type=invoice");
-                invoiceHistory = await res.json();
-            } catch (err) { console.error(err); }
-        }
+                fetch(SCRIPT_URL + "?type=settings").then(r => r.json()).then(settings => {
+                    if(settings.company_logo) uploadedLogoUrl = settings.company_logo;
+                    if(settings.iso_logo) uploadedIsoLogoUrl = settings.iso_logo;
+                    renderBillingNote();
+                });
 
-        async function fetchBillingHistory() {
-            try {
-                const res = await fetch(SCRIPT_URL + "?type=billing");
-                billingHistory = await res.json();
-                const dropdown = document.getElementById('billingHistoryDropdown');
-                dropdown.innerHTML = '<option value="">-- เลือกใบวางบิลที่ต้องการแก้ไข --</option>';
-                billingHistory.slice().reverse().forEach(inv => { dropdown.innerHTML += `<option value="${inv.invNo}">${inv.invNo}</option>`; });
+                fetch(SCRIPT_URL + "?type=customers").then(r => r.json()).then(data => {
+                    customersDatabase = data;
+                    const custDrop = document.getElementById('customerDropdown'); custDrop.innerHTML = '';
+                    if(data.length === 0) custDrop.innerHTML = '<option value="">ไม่มีข้อมูลลูกค้า</option>';
+                    data.forEach((c, idx) => { custDrop.innerHTML += `<option value="${idx}">${c.name}</option>`; });
+                    renderBillingNote();
+                });
+
+                fetch(SCRIPT_URL + "?type=invoice").then(r => r.json()).then(data => invoiceHistory = data);
+
+                fetch(SCRIPT_URL + "?type=billing").then(r => r.json()).then(data => {
+                    billingHistory = data;
+                    const dropdown = document.getElementById('billingHistoryDropdown'); dropdown.innerHTML = '<option value="">-- เลือกบิล --</option>';
+                    data.slice().reverse().forEach(inv => { dropdown.innerHTML += `<option value="${inv.invNo}">${inv.invNo}</option>`; });
+                });
             } catch (err) { console.error(err); }
         }
 
         function loadBillingNote() {
-            const selectedBL = document.getElementById('billingHistoryDropdown').value;
-            const blData = billingHistory.find(i => i.invNo === selectedBL);
+            const selectedBL = document.getElementById('billingHistoryDropdown').value; const blData = billingHistory.find(i => i.invNo === selectedBL);
             if(blData && blData.rawData) {
                 const data = JSON.parse(blData.rawData);
                 document.getElementById('billNo').value = data.billNo.replace(/^BL/, '');
                 document.getElementById('billDate').value = data.billDate || '';
                 document.getElementById('billMonthSelect').value = data.billMonth || '';
+                if(data.custName) {
+                    const custIndex = customersDatabase.findIndex(c => c.name === data.custName);
+                    if(custIndex > -1) document.getElementById('customerDropdown').value = custIndex;
+                }
                 billingItemsForPrint = data.items || [];
                 renderBillingTableUI(); renderBillingNote();
-                alert(`ดึงข้อมูล ${data.billNo} สำเร็จ!`);
             }
         }
 
-        function clearBillingForm() {
-            document.getElementById('billNo').value = ''; document.getElementById('billingHistoryDropdown').value = '';
-            billingItemsForPrint = [];
-            renderBillingTableUI(); renderBillingNote();
-        }
+        function clearBillingForm() { document.getElementById('billNo').value = ''; document.getElementById('billingHistoryDropdown').value = ''; billingItemsForPrint = []; renderBillingTableUI(); renderBillingNote(); }
 
         function autoFetchBillingData() {
             const monthStr = document.getElementById('billMonthSelect').value;
             if (!monthStr) return alert("กรุณาเลือกเดือนก่อนครับ");
             if (invoiceHistory.length === 0) return alert("กำลังโหลดข้อมูลจากเซิร์ฟเวอร์ โปรดรอสักครู่และกดใหม่อีกครั้ง");
+            
+            const selectedCustIndex = document.getElementById('customerDropdown').value;
+            const targetCustName = selectedCustIndex !== "" ? customersDatabase[selectedCustIndex].name : "";
 
             const selectedYear = parseInt(monthStr.split('-')[0]); const selectedMonth = parseInt(monthStr.split('-')[1]);
             billingItemsForPrint = []; let counter = 1;
@@ -151,38 +139,26 @@
             invoiceHistory.forEach(inv => {
                 if(inv.rawData) {
                     const data = JSON.parse(inv.rawData);
-                    if(data.date) {
+                    if(data.date && (!targetCustName || data.custName === targetCustName)) {
                         const d = new Date(data.date);
                         if(d.getFullYear() === selectedYear && (d.getMonth() + 1) === selectedMonth) {
                             const dueDate = new Date(d); dueDate.setDate(dueDate.getDate() + 30);
-                            billingItemsForPrint.push({
-                                no: counter++, invNo: data.invNo, dateObj: d,
-                                dateStr: d.toLocaleDateString('th-TH', { day: 'numeric', month: 'numeric', year: 'numeric' }),
-                                dueDateStr: dueDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'numeric', year: 'numeric' }),
-                                amount: parseFloat(data.grandTotal) || 0
-                            });
+                            billingItemsForPrint.push({ no: counter++, invNo: data.invNo, dateObj: d, dateStr: d.toLocaleDateString('th-TH', { day: 'numeric', month: 'numeric', year: 'numeric' }), dueDateStr: dueDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'numeric', year: 'numeric' }), amount: parseFloat(data.grandTotal) || 0 });
                         }
                     }
                 }
             });
 
-            billingItemsForPrint.sort((a,b) => a.dateObj - b.dateObj);
-            billingItemsForPrint.forEach((item, index) => item.no = index + 1);
+            billingItemsForPrint.sort((a,b) => a.dateObj - b.dateObj); billingItemsForPrint.forEach((item, index) => item.no = index + 1);
             renderBillingTableUI(); renderBillingNote();
         }
 
-        function removeBillingItem(index) {
-            billingItemsForPrint.splice(index, 1);
-            billingItemsForPrint.forEach((item, i) => item.no = i + 1);
-            renderBillingTableUI(); renderBillingNote();
-        }
+        function removeBillingItem(index) { billingItemsForPrint.splice(index, 1); billingItemsForPrint.forEach((item, i) => item.no = i + 1); renderBillingTableUI(); renderBillingNote(); }
 
         function renderBillingTableUI() {
             const tbody = document.getElementById('billingRowsContainer'); tbody.innerHTML = '';
             if (billingItemsForPrint.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center p-4 text-red-500 font-bold">ไม่พบบิลในเดือนที่เลือกครับ</td></tr>'; return; }
-            billingItemsForPrint.forEach((item, index) => {
-                tbody.innerHTML += `<tr><td class="border-gray p-2 border text-center">${item.no}</td><td class="border-gray p-2 border text-center font-bold text-blue-700">${item.invNo}</td><td class="border-gray p-2 border text-center">${item.dateStr}</td><td class="border-gray p-2 border text-center">${item.dueDateStr}</td><td class="border-gray p-2 border text-right font-bold">${item.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td><td class="border-gray p-2 border text-center"><button onclick="removeBillingItem(${index})" class="text-red-500 font-bold hover:underline">X</button></td></tr>`;
-            });
+            billingItemsForPrint.forEach((item, index) => { tbody.innerHTML += `<tr><td class="border-gray p-2 border text-center">${item.no}</td><td class="border-gray p-2 border text-center font-bold text-blue-700">${item.invNo}</td><td class="border-gray p-2 border text-center">${item.dateStr}</td><td class="border-gray p-2 border text-center">${item.dueDateStr}</td><td class="border-gray p-2 border text-right font-bold">${item.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td><td class="border-gray p-2 border text-center"><button onclick="removeBillingItem(${index})" class="text-red-500 font-bold hover:underline">X</button></td></tr>`; });
         }
 
         function renderBillingNote() {
@@ -190,12 +166,15 @@
             if(billingItemsForPrint.length === 0) return;
 
             const displayBillNo = document.getElementById('billNo').value ? 'BL' + document.getElementById('billNo').value : '-';
-            let displayBillDate = '-';
-            if (document.getElementById('billDate').value) displayBillDate = new Date(document.getElementById('billDate').value).toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '/');
+            let displayBillDate = '-'; if (document.getElementById('billDate').value) displayBillDate = new Date(document.getElementById('billDate').value).toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '/');
+
+            // ดึงข้อมูลลูกค้า
+            const custIndex = document.getElementById('customerDropdown').value;
+            let custData = { name: "-", address: "-", taxId: "-" };
+            if(custIndex !== "" && customersDatabase[custIndex]) custData = customersDatabase[custIndex];
 
             let grandTotalAllInvoices = Math.round((billingItemsForPrint.reduce((sum, item) => sum + item.amount, 0)) * 100) / 100;
-            let totalBeforeVat = Math.round((grandTotalAllInvoices / 1.07) * 100) / 100;
-            let vatAmount = Math.round((grandTotalAllInvoices - totalBeforeVat) * 100) / 100;
+            let totalBeforeVat = Math.round((grandTotalAllInvoices / 1.07) * 100) / 100; let vatAmount = Math.round((grandTotalAllInvoices - totalBeforeVat) * 100) / 100;
 
             const configs = [
                 { title: 'ต้นฉบับใบวางบิล', eng: 'Original Billing Note', sub: 'สำหรับลูกค้า', sub2: '(ไม่ใช่ใบกำกับภาษี)', theme: 'page-1' },
@@ -203,127 +182,24 @@
                 { title: 'สำเนาใบวางบิล', eng: 'Copy Billing Note', sub: 'สำหรับบัญชี', sub2: '(ไม่ใช่ใบกำกับภาษี)', theme: 'page-3' }
             ];
 
-            const logoUrl = localStorage.getItem('pp_company_logo') || ''; const isoUrl = localStorage.getItem('pp_iso_logo') || '';
-            const logoHtml = logoUrl ? `<img src="${logoUrl}" class="h-16 w-auto object-contain">` : `<div class="w-16 h-16 bg-gray-200 border flex items-center justify-center text-xs">LOGO</div>`;
-            const isoHtml = isoUrl ? `<img src="${isoUrl}" class="h-12 w-auto object-contain mb-1">` : ``;
+            const logoHtml = uploadedLogoUrl ? `<img src="${uploadedLogoUrl}" class="h-16 w-auto object-contain">` : `<div class="w-16 h-16 bg-gray-200 border flex items-center justify-center text-xs">LOGO</div>`;
+            const isoHtml = uploadedIsoLogoUrl ? `<img src="${uploadedIsoLogoUrl}" class="h-12 w-auto object-contain mb-1">` : ``;
 
             configs.forEach(conf => {
                 const page = document.createElement('div'); page.className = `a4-page ${conf.theme}`;
                 page.innerHTML = `
-                    <div class="flex justify-between items-start mb-1">
-                        <div class="flex gap-4 items-center">
-                            ${logoHtml}
-                            <div class="leading-snug">
-                                <h2 class="font-bold text-xl text-gray-800">บริษัท พีพี ออโต้ ซัพพลาย จำกัด</h2>
-                                <p class="text-[14px] font-bold text-gray-800 mb-1">PP AUTO SUPPLIES CO.,LTD.</p>
-                                <p class="text-[11px]">สำนักงานใหญ่ : 471/1 หมู่ที่ 5 ตำบลท่าบุญมี อำเภอเกาะจันทร์ จังหวัดชลบุรี 20240<br>
-                                Head Office : 471/1 Moo 5, Thabunmee, Ko chan, Chonburi, 20240<br>
-                                TEL. +66869490877 &nbsp;&nbsp; Email: ppautosupplies@gmail.com<br>
-                                เลขประจำตัวผู้เสียภาษีอากร 0205566032069</p>
-                            </div>
-                        </div>
-                        <div class="text-right flex flex-col items-end justify-start">
-                            ${isoHtml}
-                            <div class="font-bold text-[13px] text-gray-800 mt-1">${conf.sub}</div>
-                            <div class="text-[11px] text-gray-600">${conf.sub2}</div>
-                        </div>
-                    </div>
-                    
-                    <div class="theme-bg text-center py-2 mb-2 rounded-sm mt-1">
-                        <div class="text-[16px] font-bold tracking-wide">${conf.title}</div>
-                        <div class="text-[11px] tracking-wider">${conf.eng}</div>
-                    </div>
-                    
-                    <div class="flex border theme-border mb-2 text-[11px]">
-                        <div class="w-2/3 p-2 border-r theme-border">
-                            <table class="w-full">
-                                <tr><td class="w-24 align-top">นามลูกค้า<br><span class="text-[9px]">Name</span></td><td class="font-bold text-sm">บริษัท เอ็น.เอ.อินเตอร์ อิเล็คโทรเพลทติ้ง จำกัด</td></tr>
-                                <tr><td class="align-top pt-1">ที่อยู่<br><span class="text-[9px]">Address</span></td><td class="pt-1">54 หมู่ที่ 10 ตำบลนาวังหิน อำเภอพนัสนิคม จ.ชลบุรี 20140</td></tr>
-                                <tr><td class="align-top pt-1">เลขผู้เสียภาษี<br><span class="text-[9px]">Tax ID.</span></td><td class="pt-1"><div class="flex items-center whitespace-nowrap"><span>0 2055 56010 59 3</span><span class="mx-2">/</span>สำนักงานใหญ่<span class="mx-2"> </span>สาขาที่<span class="border-b border-black w-10 inline-block ml-1"></span></div></td></tr>
-                            </table>
-                        </div>
-                        <div class="w-1/3 p-2">
-                            <table class="w-full h-full">
-                                <tr><td>เลขที่<br><span class="text-[9px]">No.</span></td><td class="text-right font-bold text-sm">${displayBillNo}</td></tr>
-                                <tr><td class="pt-1">วันที่<br><span class="text-[9px]">Date</span></td><td class="text-right pt-1">${displayBillDate}</td></tr>
-                                <tr><td class="pt-1">เครดิต<br><span class="text-[9px]">Credit</span></td><td class="text-right pt-1">30 วัน</td></tr>
-                            </table>
-                        </div>
-                    </div>
-                    
-                    <div class="flex-grow flex flex-col">
-                        <table class="w-full text-[11px] border-collapse">
-                            <thead>
-                                <tr class="theme-bg text-center text-white">
-                                    <th class="py-1 border border-white font-normal w-16">ลำดับ</th>
-                                    <th class="py-1 border border-white font-normal auto">เลขที่ใบกำกับภาษี</th>
-                                    <th class="py-1 border border-white font-normal w-24">วันที่</th>
-                                    <th class="py-1 border border-white font-normal w-32">ครบกำหนด</th>
-                                    <th class="py-1 border border-white font-normal w-28">จำนวนเงิน</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${billingItemsForPrint.map((item) => `
-                                <tr>
-                                    <td class="text-center py-1 border-b border-l border-r border-gray-400">${item.no}</td>
-                                    <td class="text-center py-1 border-b border-r border-gray-400">${item.invNo}</td>
-                                    <td class="text-center py-1 border-b border-r border-gray-400">${item.dateStr.replace(/\//g, '/')}</td>
-                                    <td class="text-center py-1 border-b border-r border-gray-400">${item.dueDateStr.replace(/\//g, '/')}</td>
-                                    <td class="text-right py-1 px-4 border-b border-r border-gray-400">${item.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                                </tr>`).join('')}
-                                
-                                ${Array(12 - billingItemsForPrint.length > 0 ? 12 - billingItemsForPrint.length : 0).fill(0).map(() => `
-                                <tr>
-                                    <td class="h-6 border-b border-l border-r border-gray-400"></td>
-                                    <td class="border-b border-r border-gray-400"></td>
-                                    <td class="border-b border-r border-gray-400"></td>
-                                    <td class="border-b border-r border-gray-400"></td>
-                                    <td class="border-b border-r border-gray-400"></td>
-                                </tr>`).join('')}
-                                
-                                <tr class="border-t border-gray-400 text-black">
-                                    <td colspan="3" rowspan="2" class="border-b border-l border-r border-gray-400 p-2 align-top bg-white">
-                                        <span class="font-bold">หมายเหตุ:</span><br>
-                                    </td>
-                                    <td class="text-right border-b border-r border-gray-400 p-1 px-2 font-bold">รวมเงิน (Total)</td>
-                                    <td class="text-right py-1 px-4 border-b border-r border-gray-400 bg-gray-50 font-bold">${totalBeforeVat.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                                </tr>
-                                <tr class="text-black">
-                                    <td class="text-right border-b border-r border-gray-400 p-1 px-2 font-bold">ภาษีมูลค่าเพิ่ม (Vat) 7%</td>
-                                    <td class="text-right py-1 px-4 border-b border-r border-gray-400 bg-gray-50 font-bold">${vatAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                                </tr>
-                                
-                                <tr class="text-black">
-                                    <td colspan="3" class="border-b border-l border-r border-gray-400 p-1 px-2 bg-gray-50 text-center">
-                                        <span class="font-bold">ตัวอักษร:</span> (${ThaiBaht(grandTotalAllInvoices)})
-                                    </td>
-                                    <td class="text-right border-b border-r border-gray-400 p-1 px-2 theme-bg text-white font-bold">รวมเงินทั้งสิ้น (Subtotal)</td>
-                                    <td class="text-right py-1 px-4 border-b border-r border-gray-400 bg-gray-50 font-bold">${grandTotalAllInvoices.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="mt-3 text-[11px] font-bold px-1">ได้รับสินค้าตามรายการข้างบนไว้เรียบร้อยแล้ว</div>
-                    <div class="text-[11px] font-bold px-1 mb-2">ในนาม บริษัท พีพี ออโต้ ซัพพลาย จำกัด</div>
-
-                    <div class="grid grid-cols-3 mt-4 text-[11px] text-center text-black">
-                        <div class="flex flex-col items-center">
-                            <div class="border-b border-black w-40 mb-1 h-8"></div>
-                            <div>ผู้รับวางบิล</div>
-                            <div class="mt-2">วันที่ <span class="border-b border-black inline-block w-24"></span></div>
-                        </div>
-                        <div class="flex flex-col items-center">
-                            <div class="mb-1 h-8 flex items-end justify-center">(นายนที หกราโชติ)</div>
-                            <div>ผู้วางบิล</div>
-                            <div class="mt-2">วันที่ &nbsp;&nbsp;&nbsp; ${displayBillDate}</div>
-                        </div>
-                        <div class="flex flex-col items-center">
-                            <div class="mb-1 h-8 flex items-end justify-center">(นายเฉลิมเกียรติ เฮงธารากูล)</div>
-                            <div>ผู้มีอำนาจลงนาม</div>
-                            <div class="mt-2">วันที่ <span class="border-b border-black inline-block w-24"></span></div>
-                        </div>
-                    </div>
+                    <div class="flex justify-between items-start mb-1"><div class="flex gap-4 items-center">${logoHtml}<div class="leading-snug"><h2 class="font-bold text-xl text-gray-800">บริษัท พีพี ออโต้ ซัพพลาย จำกัด</h2><p class="text-[14px] font-bold text-gray-800 mb-1">PP AUTO SUPPLIES CO.,LTD.</p><p class="text-[11px]">สำนักงานใหญ่ : 471/1 หมู่ที่ 5 ตำบลท่าบุญมี อำเภอเกาะจันทร์ จังหวัดชลบุรี 20240<br>Head Office : 471/1 Moo 5, Thabunmee, Ko chan, Chonburi, 20240<br>TEL. +66869490877 &nbsp;&nbsp; Email: ppautosupplies@gmail.com<br>เลขประจำตัวผู้เสียภาษีอากร 0205566032069</p></div></div><div class="text-right flex flex-col items-end justify-start">${isoHtml}<div class="font-bold text-[13px] text-gray-800 mt-1">${conf.sub}</div><div class="text-[11px] text-gray-600">${conf.sub2}</div></div></div>
+                    <div class="theme-bg text-center py-2 mb-2 rounded-sm mt-1"><div class="text-[16px] font-bold tracking-wide">${conf.title}</div><div class="text-[11px] tracking-wider">${conf.eng}</div></div>
+                    <div class="flex border theme-border mb-2 text-[11px]"><div class="w-2/3 p-2 border-r theme-border"><table class="w-full"><tr><td class="w-24 align-top">นามลูกค้า<br><span class="text-[9px]">Name</span></td><td class="font-bold text-sm">${custData.name}</td></tr><tr><td class="align-top pt-1">ที่อยู่<br><span class="text-[9px]">Address</span></td><td class="pt-1">${custData.address}</td></tr><tr><td class="align-top pt-1">เลขผู้เสียภาษี<br><span class="text-[9px]">Tax ID.</span></td><td class="pt-1"><div class="flex items-center whitespace-nowrap"><span>${custData.taxId}</span></div></td></tr></table></div><div class="w-1/3 p-2"><table class="w-full h-full"><tr><td>เลขที่<br><span class="text-[9px]">No.</span></td><td class="text-right font-bold text-sm">${displayBillNo}</td></tr><tr><td class="pt-1">วันที่<br><span class="text-[9px]">Date</span></td><td class="text-right pt-1">${displayBillDate}</td></tr><tr><td class="pt-1">เครดิต<br><span class="text-[9px]">Credit</span></td><td class="text-right pt-1">30 วัน</td></tr></table></div></div>
+                    <div class="flex-grow flex flex-col"><table class="w-full text-[11px] border-collapse"><thead><tr class="theme-bg text-center text-white"><th class="py-1 border border-white font-normal w-16">ลำดับ</th><th class="py-1 border border-white font-normal auto">เลขที่ใบกำกับภาษี</th><th class="py-1 border border-white font-normal w-24">วันที่</th><th class="py-1 border border-white font-normal w-32">ครบกำหนด</th><th class="py-1 border border-white font-normal w-28">จำนวนเงิน</th></tr></thead><tbody>
+                        ${billingItemsForPrint.map((item) => `<tr><td class="text-center py-1 border-b border-l border-r border-gray-400">${item.no}</td><td class="text-center py-1 border-b border-r border-gray-400">${item.invNo}</td><td class="text-center py-1 border-b border-r border-gray-400">${item.dateStr.replace(/\//g, '/')}</td><td class="text-center py-1 border-b border-r border-gray-400">${item.dueDateStr.replace(/\//g, '/')}</td><td class="text-right py-1 px-4 border-b border-r border-gray-400">${item.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>`).join('')}
+                        ${Array(12 - billingItemsForPrint.length > 0 ? 12 - billingItemsForPrint.length : 0).fill(0).map(() => `<tr><td class="h-6 border-b border-l border-r border-gray-400"></td><td class="border-b border-r border-gray-400"></td><td class="border-b border-r border-gray-400"></td><td class="border-b border-r border-gray-400"></td><td class="border-b border-r border-gray-400"></td></tr>`).join('')}
+                        <tr class="border-t border-gray-400 text-black"><td colspan="3" rowspan="2" class="border-b border-l border-r border-gray-400 p-2 align-top bg-white"><span class="font-bold">หมายเหตุ:</span><br></td><td class="text-right border-b border-r border-gray-400 p-1 px-2 font-bold">รวมเงิน (Total)</td><td class="text-right py-1 px-4 border-b border-r border-gray-400 bg-gray-50 font-bold">${totalBeforeVat.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>
+                        <tr class="text-black"><td class="text-right border-b border-r border-gray-400 p-1 px-2 font-bold">ภาษีมูลค่าเพิ่ม (Vat) 7%</td><td class="text-right py-1 px-4 border-b border-r border-gray-400 bg-gray-50 font-bold">${vatAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>
+                        <tr class="text-black"><td colspan="3" class="border-b border-l border-r border-gray-400 p-1 px-2 bg-gray-50 text-center"><span class="font-bold">ตัวอักษร:</span> (${ThaiBaht(grandTotalAllInvoices)})</td><td class="text-right border-b border-r border-gray-400 p-1 px-2 theme-bg text-white font-bold">รวมเงินทั้งสิ้น (Subtotal)</td><td class="text-right py-1 px-4 border-b border-r border-gray-400 bg-gray-50 font-bold">${grandTotalAllInvoices.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>
+                    </tbody></table></div>
+                    <div class="mt-3 text-[11px] font-bold px-1">ได้รับสินค้าตามรายการข้างบนไว้เรียบร้อยแล้ว</div><div class="text-[11px] font-bold px-1 mb-2">ในนาม บริษัท พีพี ออโต้ ซัพพลาย จำกัด</div>
+                    <div class="grid grid-cols-3 mt-4 text-[11px] text-center text-black"><div class="flex flex-col items-center"><div class="border-b border-black w-40 mb-1 h-8"></div><div>ผู้รับวางบิล</div><div class="mt-2">วันที่ <span class="border-b border-black inline-block w-24"></span></div></div><div class="flex flex-col items-center"><div class="mb-1 h-8 flex items-end justify-center">(นายนที หกราโชติ)</div><div>ผู้วางบิล</div><div class="mt-2">วันที่ &nbsp;&nbsp;&nbsp; ${displayBillDate}</div></div><div class="flex flex-col items-center"><div class="mb-1 h-8 flex items-end justify-center">(นายเฉลิมเกียรติ เฮงธารากูล)</div><div>ผู้มีอำนาจลงนาม</div><div class="mt-2">วันที่ <span class="border-b border-black inline-block w-24"></span></div></div></div>
                 `;
                 printArea.appendChild(page);
             });
@@ -334,23 +210,17 @@
             if(!rawBillNo) return alert('⚠️ กรุณากรอกเลขที่ใบวางบิล');
             if(billingItemsForPrint.length === 0) return alert('⚠️ ไม่มีรายการบิลให้บันทึก');
 
+            const custIndex = document.getElementById('customerDropdown').value;
+            const custName = custIndex !== "" ? customersDatabase[custIndex].name : "-";
+
             const billNo = 'BL' + rawBillNo;
-            const data = {
-                type: 'billing',
-                invNo: billNo,
-                billNo: billNo,
-                billDate: document.getElementById('billDate').value,
-                billMonth: document.getElementById('billMonthSelect').value,
-                custName: "บริษัท เอ็น.เอ.อินเตอร์ อิเล็คโทรเพลทติ้ง จำกัด",
-                grandTotal: billingItemsForPrint.reduce((s, i) => s + i.amount, 0),
-                items: billingItemsForPrint
-            };
+            const data = { type: 'billing', invNo: billNo, billNo: billNo, billDate: document.getElementById('billDate').value, billMonth: document.getElementById('billMonthSelect').value, custName: custName, grandTotal: billingItemsForPrint.reduce((s, i) => s + i.amount, 0), items: billingItemsForPrint };
 
             const btn = document.getElementById('btnSaveBilling'); btn.innerHTML = 'กำลังบันทึก...'; btn.disabled = true;
             try {
                 const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'text/plain;charset=utf-8' }});
                 const result = await res.json();
-                if (result.status === 'success' || result.status === 'updated') { alert('✅ บันทึกใบวางบิลเรียบร้อย!'); fetchBillingHistory(); } else alert('❌ ' + result.message);
+                if (result.status === 'success' || result.status === 'updated') { alert('✅ บันทึกใบวางบิลเรียบร้อย!'); fetchCloudData(); } else alert('❌ ' + result.message);
             } catch (err) { alert('❌ เชื่อมต่อฐานข้อมูลล้มเหลว'); } finally { btn.innerHTML = '💾 บันทึกข้อมูล'; btn.disabled = false; }
         }
 
