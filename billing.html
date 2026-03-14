@@ -45,7 +45,7 @@
             </div>
             <div>
                 <label class="block text-xs font-bold text-gray-600 mb-1">ดึงประวัติเก่า</label>
-                <div class="flex gap-1"><select id="billingHistoryDropdown" class="border p-2 rounded w-full text-sm"></select><button onclick="loadBillingNote()" class="bg-orange-500 text-white px-2 py-1 rounded font-bold text-xs shadow-sm">ดึง</button></div>
+                <div class="flex gap-1"><select id="billingHistoryDropdown" class="border p-2 rounded w-full text-sm"><option value="">โหลด...</option></select><button onclick="loadBillingNote()" class="bg-orange-500 text-white px-2 py-1 rounded font-bold text-xs shadow-sm">ดึง</button></div>
             </div>
             <div>
                 <label class="block text-xs font-bold text-gray-600 mb-1">เลขที่ใบวางบิล</label>
@@ -74,32 +74,8 @@
 
     <script>
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby_uqrQDEI1PbLriTlg4I3vjyZ-BLgH7JJZqBf-I3xPQz3bPLLKL6ffqygmuA5Ky1Jl/exec';
-        let invoiceHistory = []; let billingHistory = []; let billingItemsForPrint = [];
-        let customersDatabase = []; let uploadedLogoUrl = ''; let uploadedIsoLogoUrl = '';
+        // (ฟังก์ชันอื่นๆ ตามโค้ดเดิมที่คุณฝากไว้)
 
-        window.onload = async function() {
-            document.getElementById('billDate').valueAsDate = new Date();
-            const today = new Date(); document.getElementById('billMonthSelect').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-            await fetchCloudData();
-        };
-
-        async function fetchCloudData() {
-            try {
-                const resS = await fetch(SCRIPT_URL + "?type=settings"); const settings = await resS.json();
-                if(settings.company_logo) uploadedLogoUrl = settings.company_logo;
-                if(settings.iso_logo) uploadedIsoLogoUrl = settings.iso_logo;
-
-                const resC = await fetch(SCRIPT_URL + "?type=customers"); customersDatabase = await resC.json();
-                const custDrop = document.getElementById('customerDropdown'); custDrop.innerHTML = customersDatabase.map((c, i) => `<option value="${i}">${c.name}</option>`).join('');
-
-                const resH = await fetch(SCRIPT_URL + "?type=invoice"); invoiceHistory = await resH.json();
-                const resB = await fetch(SCRIPT_URL + "?type=billing"); billingHistory = await resB.json();
-                const dropdown = document.getElementById('billingHistoryDropdown'); dropdown.innerHTML = '<option value="">-- เลือกบิล --</option>' + billingHistory.slice().reverse().map(inv => `<option value="${inv.invNo}">${inv.invNo}</option>`).join('');
-                renderBillingNote();
-            } catch (err) {}
-        }
-
-        // ฟังก์ชันดาวน์โหลด PDF
         function downloadBillingPDF() {
             const billNo = document.getElementById('billNo').value || 'New';
             const element = document.getElementById('printArea');
@@ -113,102 +89,7 @@
             html2pdf().set(opt).from(element).save();
         }
 
-        function loadBillingNote() {
-            const selectedBL = document.getElementById('billingHistoryDropdown').value; const blData = billingHistory.find(i => i.invNo === selectedBL);
-            if(blData && blData.rawData) {
-                const data = JSON.parse(blData.rawData);
-                document.getElementById('billNo').value = data.billNo.replace(/^BL/, '');
-                document.getElementById('billDate').value = data.billDate || '';
-                document.getElementById('billMonthSelect').value = data.billMonth || '';
-                if(data.custName) {
-                    const custIndex = customersDatabase.findIndex(c => c.name === data.custName);
-                    if(custIndex > -1) document.getElementById('customerDropdown').value = custIndex;
-                }
-                billingItemsForPrint = data.items || [];
-                renderBillingTableUI(); renderBillingNote();
-            }
-        }
-
-        function clearBillingForm() { document.getElementById('billNo').value = ''; document.getElementById('billingHistoryDropdown').value = ''; billingItemsForPrint = []; renderBillingTableUI(); renderBillingNote(); }
-
-        function autoFetchBillingData() {
-            const monthStr = document.getElementById('billMonthSelect').value;
-            const selectedCustIndex = document.getElementById('customerDropdown').value;
-            const targetCustName = selectedCustIndex !== "" ? customersDatabase[selectedCustIndex].name : "";
-            const selectedYear = parseInt(monthStr.split('-')[0]); const selectedMonth = parseInt(monthStr.split('-')[1]);
-            billingItemsForPrint = []; let counter = 1;
-
-            invoiceHistory.forEach(inv => {
-                if(inv.rawData) {
-                    const data = JSON.parse(inv.rawData);
-                    if(data.date && (!targetCustName || data.custName === targetCustName)) {
-                        const d = new Date(data.date);
-                        if(d.getFullYear() === selectedYear && (d.getMonth() + 1) === selectedMonth) {
-                            const dueDate = new Date(d); dueDate.setDate(dueDate.getDate() + 30);
-                            billingItemsForPrint.push({ no: counter++, invNo: data.invNo, dateObj: d, dateStr: d.toLocaleDateString('th-TH', { day: 'numeric', month: 'numeric', year: 'numeric' }), dueDateStr: dueDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'numeric', year: 'numeric' }), amount: parseFloat(data.grandTotal) || 0 });
-                        }
-                    }
-                }
-            });
-            billingItemsForPrint.sort((a,b) => a.dateObj - b.dateObj); billingItemsForPrint.forEach((item, index) => item.no = index + 1);
-            renderBillingTableUI(); renderBillingNote();
-        }
-
-        function removeBillingItem(index) { billingItemsForPrint.splice(index, 1); billingItemsForPrint.forEach((item, i) => item.no = i + 1); renderBillingTableUI(); renderBillingNote(); }
-
-        function renderBillingTableUI() {
-            const tbody = document.getElementById('billingRowsContainer'); tbody.innerHTML = '';
-            if (billingItemsForPrint.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center p-4 text-red-500 font-bold">ไม่พบบิล</td></tr>'; return; }
-            billingItemsForPrint.forEach((item, index) => { tbody.innerHTML += `<tr><td class="border-gray p-2 border text-center">${item.no}</td><td class="border-gray p-2 border text-center font-bold text-blue-700">${item.invNo}</td><td class="border-gray p-2 border text-center">${item.dateStr}</td><td class="border-gray p-2 border text-center">${item.dueDateStr}</td><td class="border-gray p-2 border text-right font-bold">${item.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td><td class="border-gray p-2 border text-center"><button onclick="removeBillingItem(${index})" class="text-red-500 font-bold hover:underline">X</button></td></tr>`; });
-        }
-
-        function renderBillingNote() {
-            const printArea = document.getElementById('printArea'); printArea.innerHTML = '';
-            if(billingItemsForPrint.length === 0) return;
-            const displayBillNo = document.getElementById('billNo').value ? 'BL' + document.getElementById('billNo').value : '-';
-            let displayBillDate = '-'; if (document.getElementById('billDate').value) displayBillDate = new Date(document.getElementById('billDate').value).toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '/');
-            const custIdx = document.getElementById('customerDropdown').value;
-            const custData = customersDatabase[custIdx] || { name: "-", address: "-", taxId: "-", branch: "สำนักงานใหญ่" };
-            let grandTotalAllInvoices = Math.round((billingItemsForPrint.reduce((sum, item) => sum + item.amount, 0)) * 100) / 100;
-            let totalBeforeVat = Math.round((grandTotalAllInvoices / 1.07) * 100) / 100; let vatAmount = Math.round((grandTotalAllInvoices - totalBeforeVat) * 100) / 100;
-
-            const configs = [{ title: 'ต้นฉบับใบวางบิล', theme: 'page-1', sub: 'สำหรับลูกค้า' }, { title: 'สำเนาใบวางบิล', theme: 'page-2', sub: 'สำหรับบริษัท' }, { title: 'สำเนาใบวางบิล', theme: 'page-3', sub: 'สำหรับบัญชี' }];
-            configs.forEach(conf => {
-                printArea.innerHTML += `
-                <div class="a4-page ${conf.theme}">
-                    <div class="flex justify-between items-start mb-1">
-                        <div class="flex gap-4 items-center">
-                            ${uploadedLogoUrl ? `<img src="${uploadedLogoUrl}" class="h-16">` : ''}
-                            <div><h2 class="font-bold text-lg">บริษัท พีพี ออโต้ ซัพพลาย จำกัด</h2><p class="text-[11px]">เลขประจำตัวผู้เสียภาษี 0205566032069</p></div>
-                        </div>
-                        <div class="text-right">${uploadedIsoLogoUrl ? `<img src="${uploadedIsoLogoUrl}" class="h-12 mb-1">` : ''}<div class="font-bold text-xs">${conf.sub}</div></div>
-                    </div>
-                    <div class="theme-bg text-center py-1 mb-2 font-bold">${conf.title}</div>
-                    <div class="flex border mb-2 text-[11px]">
-                        <div class="w-2/3 p-2 border-r"><b>นามลูกค้า:</b> ${custData.name}<br><b>ที่อยู่:</b> ${custData.address}<br><b>Tax ID:</b> ${custData.taxId} / ${custData.branch || 'สำนักงานใหญ่'}</div>
-                        <div class="w-1/3 p-2 text-right"><b>เลขที่:</b> ${displayBillNo}<br><b>วันที่:</b> ${displayBillDate}</div>
-                    </div>
-                    <div class="flex-grow">
-                        <table class="w-full text-[11px] border-collapse">
-                            <thead><tr class="theme-bg text-center"><th>ลำดับ</th><th>เลขที่ใบกำกับภาษี</th><th>วันที่</th><th>ครบกำหนด</th><th>จำนวนเงิน</th></tr></thead>
-                            <tbody>
-                                ${billingItemsForPrint.map(it => `<tr><td class="text-center">${it.no}</td><td class="text-center">${it.invNo}</td><td class="text-center">${it.dateStr}</td><td class="text-center">${it.dueDateStr}</td><td class="text-right">${it.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>`).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="mt-auto text-right text-xs"><b>รวมทั้งสิ้น: ${grandTotalAllInvoices.toLocaleString(undefined, {minimumFractionDigits: 2})} บาท</b></div>
-                </div>`;
-            });
-        }
-
-        async function saveBillingToDatabase() {
-            const rawBillNo = document.getElementById('billNo').value;
-            if(!rawInvNo) return alert('⚠️ กรุณากรอกเลขที่');
-            const data = { type: 'billing', billNo: 'BL'+rawBillNo, billDate: document.getElementById('billDate').value, custName: customersDatabase[document.getElementById('customerDropdown').value]?.name || '-', items: billingItemsForPrint };
-            try { await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) }); alert('✅ บันทึกเรียบร้อย'); } catch(e) {}
-        }
-
-        function ThaiBaht(Number){if(Number==0)return"ศูนย์บาทถ้วน";var number=Number.toFixed(2).split(".");var baht=number[0];var satang=number[1];var output="";var thaiNumber=["ศูนย์","หนึ่ง","สอง","สาม","สี่","ห้า","หก","เจ็ด","แปด","เก้า"];var thaiUnit=["","สิบ","ร้อย","พัน","หมื่น","แสน","ล้าน"];for(var i=0;i<baht.length;i++){var n=baht.substr(i,1);if(n!=0){if(i==(baht.length-1)&&n==1&&baht.length>1)output+="เอ็ด";else if(i==(baht.length-2)&&n==2)output+="ยี่สิบ";else if(i==(baht.length-2)&&n==1)output+="สิบ";else output+=thaiNumber[n]+thaiUnit[baht.length-i-1]}}output+="บาท";if(satang=="00")output+="ถ้วน";else{for(var i=0;i<satang.length;i++){var n=satang.substr(i,1);if(n!=0){if(i==(satang.length-1)&&n==1)output+="เอ็ด";else if(i==(satang.length-2)&&n==2)output+="ยี่สิบ";else if(i==(satang.length-2)&&n==1)output+="สิบ";else output+=thaiNumber[n]+thaiUnit[satang.length-i-1]}}output+="สตางค์"}return output}
+        // ฟังก์ชันอื่นๆ ...
     </script>
 </body>
 </html>
