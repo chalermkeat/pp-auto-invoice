@@ -17,14 +17,26 @@
             width: 210mm; height: 297mm; padding: 12mm 15mm; margin: 10px auto;
             background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1);
             position: relative; display: flex; flex-direction: column;
+            page-break-after: always;
         }
-        /* สีฟ้าตามแบบ Excel */
-        .excel-blue { background-color: #6a9bd1; color: white; }
-        .border-excel { border-color: #6a9bd1; }
-        .border-gray { border-color: #cbd5e1; }
+        
         table { border-collapse: collapse; }
-        table th, table td { border: 1px solid #6a9bd1; }
-        .fixed-customer p { margin-bottom: 2px; }
+        .border-gray { border-color: #cbd5e1; }
+        
+        /* Theme 1: สีเลือดหมู (ต้นฉบับสำหรับลูกค้า) */
+        .page-1 .theme-bg { background-color: #8B0000 !important; color: white !important; }
+        .page-1 .theme-border { border-color: #8B0000 !important; }
+        .page-1 table.product-table th, .page-1 table.product-table td { border: 1px solid #8B0000; }
+
+        /* Theme 2: สีส้ม (สำเนาสำหรับลูกค้า) */
+        .page-2 .theme-bg { background-color: #E65C00 !important; color: white !important; }
+        .page-2 .theme-border { border-color: #E65C00 !important; }
+        .page-2 table.product-table th, .page-2 table.product-table td { border: 1px solid #E65C00; }
+
+        /* Theme 3: สีน้ำเงิน (สำหรับบัญชี) */
+        .page-3 .theme-bg { background-color: #0047AB !important; color: white !important; }
+        .page-3 .theme-border { border-color: #0047AB !important; }
+        .page-3 table.product-table th, .page-3 table.product-table td { border: 1px solid #0047AB; }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -39,32 +51,40 @@
         </div>
 
         <div class="grid grid-cols-4 gap-4 mb-4 bg-gray-50 p-4 rounded border">
-            <div class="col-span-4 mb-2 flex items-center gap-4">
-                <label class="font-bold">อัปโหลดโลโก้บริษัท:</label>
-                <input type="file" id="logoUpload" accept="image/*" onchange="handleLogoUpload(event)" class="border p-1 rounded bg-white text-sm w-64">
-                <button onclick="clearLogo()" class="text-red-500 text-sm underline">ลบโลโก้</button>
+            <div class="col-span-4 mb-2 grid grid-cols-2 gap-4 border-b pb-4">
+                <div class="flex items-center gap-2">
+                    <label class="font-bold w-32">โลโก้บริษัท (ซ้าย):</label>
+                    <input type="file" id="logoUpload" accept="image/*" onchange="handleLogoUpload(event)" class="border p-1 rounded bg-white text-sm flex-grow">
+                    <button onclick="clearLogo()" class="text-red-500 text-sm underline hover:text-red-700">ลบ</button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="font-bold w-32 text-right pr-2">โลโก้ ISO (ขวา):</label>
+                    <input type="file" id="isoLogoUpload" accept="image/*" onchange="handleIsoLogoUpload(event)" class="border p-1 rounded bg-white text-sm flex-grow">
+                    <button onclick="clearIsoLogo()" class="text-red-500 text-sm underline hover:text-red-700">ลบ</button>
+                </div>
             </div>
-            <input type="text" id="invNo" placeholder="เลขที่ (e.g. IV6903010)" class="border p-2 rounded">
-            <input type="text" id="invDate" placeholder="วันที่ (e.g. 13/3/2569)" class="border p-2 rounded">
-            <input type="text" id="creditTerm" placeholder="เครดิต (เช่น 30 วัน)" class="border p-2 rounded">
-            <input type="number" id="discountPercent" placeholder="ส่วนลด % (ถ้ามี)" class="border p-2 rounded" value="0" onchange="updateView()">
+
+            <input type="text" id="invNo" placeholder="เลขที่ (e.g. IV6903010)" class="border p-2 rounded border-gray-300">
+            <input type="text" id="invDate" placeholder="วันที่ (e.g. 13/3/2569)" class="border p-2 rounded border-gray-300">
+            <input type="text" id="creditTerm" placeholder="เครดิต (เช่น 30 วัน)" class="border p-2 rounded border-gray-300">
+            <input type="number" id="discountPercent" placeholder="ส่วนลด % (ถ้ามี)" class="border p-2 rounded border-gray-300" value="0" onchange="updateView()">
         </div>
 
         <div class="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-100">
             <h2 class="font-bold mb-2">เพิ่มรายการสินค้า</h2>
             <div class="grid grid-cols-6 gap-2 mb-2">
-                <input type="text" id="pCode" placeholder="รหัสสินค้า" class="border p-2 rounded col-span-1">
-                <input type="text" id="pDesc" placeholder="รายละเอียด" class="border p-2 rounded col-span-2">
-                <input type="number" id="pQty" placeholder="จำนวน" class="border p-2 rounded">
-                <input type="text" id="pUnit" placeholder="หน่วย (เช่น PCS.)" class="border p-2 rounded" value="PCS.">
-                <input type="number" id="pPrice" placeholder="ราคา/หน่วย" class="border p-2 rounded">
+                <input type="text" id="pCode" placeholder="รหัสสินค้า" class="border p-2 rounded border-gray-300 col-span-1">
+                <input type="text" id="pDesc" placeholder="รายละเอียด" class="border p-2 rounded border-gray-300 col-span-2">
+                <input type="number" id="pQty" placeholder="จำนวน" class="border p-2 rounded border-gray-300">
+                <input type="text" id="pUnit" placeholder="หน่วย (เช่น PCS.)" class="border p-2 rounded border-gray-300" value="PCS.">
+                <input type="number" id="pPrice" placeholder="ราคา/หน่วย" class="border p-2 rounded border-gray-300">
             </div>
-            <button onclick="addItem()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-bold text-sm">+ เพิ่มรายการ</button>
+            <button onclick="addItem()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-bold text-sm shadow-sm">+ เพิ่มรายการ</button>
         </div>
 
         <table class="w-full mt-4 border-collapse bg-white">
             <thead><tr class="bg-gray-100 text-sm">
-                <th class="border-gray">รหัส</th><th class="border-gray">รายละเอียด</th><th class="border-gray">จำนวน</th><th class="border-gray">หน่วย</th><th class="border-gray">ราคา</th><th class="border-gray">รวม</th><th class="border-gray">ลบ</th>
+                <th class="border-gray p-2 border">รหัส</th><th class="border-gray p-2 border">รายละเอียด</th><th class="border-gray p-2 border">จำนวน</th><th class="border-gray p-2 border">หน่วย</th><th class="border-gray p-2 border">ราคา</th><th class="border-gray p-2 border">รวม</th><th class="border-gray p-2 border">ลบ</th>
             </tr></thead>
             <tbody id="inputList" class="text-sm"></tbody>
         </table>
@@ -75,7 +95,9 @@
     <script>
         let items = [];
         let uploadedLogoUrl = '';
+        let uploadedIsoLogoUrl = '';
 
+        // จัดการโลโก้บริษัท (ซ้าย)
         function handleLogoUpload(event) {
             const file = event.target.files[0];
             if(file) {
@@ -91,6 +113,25 @@
         function clearLogo() {
             uploadedLogoUrl = '';
             document.getElementById('logoUpload').value = '';
+            renderPages();
+        }
+
+        // จัดการโลโก้ ISO (ขวา)
+        function handleIsoLogoUpload(event) {
+            const file = event.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedIsoLogoUrl = e.target.result;
+                    renderPages();
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function clearIsoLogo() {
+            uploadedIsoLogoUrl = '';
+            document.getElementById('isoLogoUpload').value = '';
             renderPages();
         }
 
@@ -115,13 +156,13 @@
             const list = document.getElementById('inputList');
             list.innerHTML = items.map((item, i) => `
                 <tr>
-                    <td class="text-center border-gray p-1">${item.code}</td>
-                    <td class="border-gray p-1">${item.desc}</td>
-                    <td class="text-center border-gray p-1">${item.qty}</td>
-                    <td class="text-center border-gray p-1">${item.unit}</td>
-                    <td class="text-right border-gray p-1">${item.price.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                    <td class="text-right font-bold border-gray p-1">${item.total.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                    <td class="text-center border-gray p-1"><button onclick="items.splice(${i},1); updateView();" class="text-red-500 font-bold">X</button></td>
+                    <td class="text-center border-gray border p-2">${item.code}</td>
+                    <td class="border-gray border p-2">${item.desc}</td>
+                    <td class="text-center border-gray border p-2">${item.qty}</td>
+                    <td class="text-center border-gray border p-2">${item.unit}</td>
+                    <td class="text-right border-gray border p-2">${item.price.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                    <td class="text-right font-bold border-gray border p-2">${item.total.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                    <td class="text-center border-gray border p-2"><button onclick="items.splice(${i},1); updateView();" class="text-red-500 font-bold hover:underline">X</button></td>
                 </tr>
             `).join('');
             renderPages();
@@ -132,9 +173,9 @@
             printArea.innerHTML = '';
             
             const configs = [
-                { title: 'ต้นฉบับใบกำกับภาษี / ใบส่งสินค้า', eng: 'ORIGINAL TAX INVOICE / DELIVERY ORDER', sub: 'สำหรับลูกค้า', color: '#6a9bd1' },
-                { title: 'สำเนาใบกำกับภาษี / ใบส่งสินค้า', eng: 'COPY TAX INVOICE / DELIVERY ORDER', sub: 'สำเนาสำหรับลูกค้า', color: '#6a9bd1' },
-                { title: 'สำเนาใบกำกับภาษี / ใบส่งสินค้า', eng: 'COPY TAX INVOICE / DELIVERY ORDER', sub: 'สำหรับบัญชี', color: '#6a9bd1' }
+                { title: 'ต้นฉบับใบกำกับภาษี / ใบส่งสินค้า', eng: 'ORIGINAL TAX INVOICE / DELIVERY ORDER', sub: 'ต้นฉบับสำหรับลูกค้า', theme: 'page-1' },
+                { title: 'สำเนาใบกำกับภาษี / ใบส่งสินค้า', eng: 'COPY TAX INVOICE / DELIVERY ORDER', sub: 'สำเนาสำหรับลูกค้า', theme: 'page-2' },
+                { title: 'สำเนาใบกำกับภาษี / ใบส่งสินค้า', eng: 'COPY TAX INVOICE / DELIVERY ORDER', sub: 'สำหรับบัญชี', theme: 'page-3' }
             ];
 
             const subTotal = items.reduce((s, i) => s + i.total, 0);
@@ -146,11 +187,15 @@
 
             configs.forEach(conf => {
                 const page = document.createElement('div');
-                page.className = 'a4-page';
+                page.className = `a4-page ${conf.theme}`;
                 
                 const logoHtml = uploadedLogoUrl 
-                    ? `<img src="${uploadedLogoUrl}" class="h-24 w-auto object-contain">` 
+                    ? `<img src="${uploadedLogoUrl}" class="h-20 w-auto object-contain">` 
                     : `<div class="w-20 h-20 bg-gray-200 flex items-center justify-center text-[10px] text-center border">LOGO</div>`;
+                
+                const isoLogoHtml = uploadedIsoLogoUrl
+                    ? `<img src="${uploadedIsoLogoUrl}" class="h-14 w-auto object-contain mb-1">`
+                    : ``;
 
                 page.innerHTML = `
                     <div class="flex justify-between items-start mb-2">
@@ -164,33 +209,34 @@
                                 TEL. +66869490877 &nbsp;&nbsp; เลขประจำตัวผู้เสียภาษีอากร 0205566032069</p>
                             </div>
                         </div>
-                        <div class="text-right">
-                            <div class="inline-block px-6 py-1 text-white text-sm font-bold excel-blue mt-2">${conf.sub}</div>
+                        <div class="text-right flex flex-col items-end justify-start">
+                            ${isoLogoHtml}
+                            <div class="inline-block px-6 py-1 text-white text-sm font-bold theme-bg mt-1">${conf.sub}</div>
                         </div>
                     </div>
 
-                    <div class="excel-blue text-center py-2 mb-3 rounded-sm">
-                        <div class="text-lg font-bold">${conf.title}</div>
-                        <div class="text-[11px]">${conf.eng}</div>
+                    <div class="theme-bg text-center py-2 mb-3 rounded-sm mt-1">
+                        <div class="text-lg font-bold tracking-wide">${conf.title}</div>
+                        <div class="text-[11px] tracking-wider">${conf.eng}</div>
                     </div>
 
-                    <div class="flex border border-excel mb-3 text-[11px]">
-                        <div class="w-2/3 p-3 border-r border-excel">
-                            <table class="w-full border-none">
+                    <div class="flex border theme-border mb-3 text-[11px]">
+                        <div class="w-2/3 p-3 border-r theme-border">
+                            <table class="w-full">
                                 <tr>
-                                    <td class="border-none w-24 align-top">นามลูกค้า<br><span class="text-[9px]">Name</span></td>
-                                    <td class="border-none font-bold text-sm">บริษัท เอ็น.เอ.อินเตอร์ อิเล็คโทรเพลทติ้ง จำกัด</td>
+                                    <td class="w-28 align-top">นามลูกค้า<br><span class="text-[9px]">Name</span></td>
+                                    <td class="font-bold text-sm">บริษัท เอ็น.เอ.อินเตอร์ อิเล็คโทรเพลทติ้ง จำกัด</td>
                                 </tr>
                                 <tr>
-                                    <td class="border-none align-top pt-2">ที่อยู่<br><span class="text-[9px]">Address</span></td>
-                                    <td class="border-none pt-2">54 หมู่ที่ 10 ตำบลนาวังหิน อำเภอพนัสนิคม<br>จ.ชลบุรี 20140</td>
+                                    <td class="align-top pt-2">ที่อยู่<br><span class="text-[9px]">Address</span></td>
+                                    <td class="pt-2">54 หมู่ที่ 10 ตำบลนาวังหิน อำเภอพนัสนิคม<br>จ.ชลบุรี 20140</td>
                                 </tr>
                                 <tr>
-                                    <td class="border-none align-top pt-2">เลขประจำตัวผู้เสียภาษี<br><span class="text-[9px]">Tax ID.</span></td>
-                                    <td class="border-none pt-2 flex items-center gap-4">
+                                    <td class="align-top pt-2">เลขประจำตัวผู้เสียภาษี<br><span class="text-[9px]">Tax ID.</span></td>
+                                    <td class="pt-2 flex items-center gap-4">
                                         <span>0 2055 56010 59 3</span>
                                         <div class="flex items-center gap-1 ml-4">
-                                            <span class="border border-black px-1 text-center w-4 h-4 leading-none inline-block">x</span> สำนักงานใหญ่
+                                            <span class="border border-black px-1 text-center w-4 h-4 leading-none inline-block">/</span> สำนักงานใหญ่
                                         </div>
                                         <div class="flex items-center gap-1 ml-2">
                                             <span class="border border-black px-1 text-center w-4 h-4 leading-none inline-block">&nbsp;</span> สาขาที่ <span class="border-b border-black w-10 inline-block"></span>
@@ -200,19 +246,19 @@
                             </table>
                         </div>
                         <div class="w-1/3 p-3">
-                            <table class="w-full border-none h-full">
-                                <tr><td class="border-none">เลขที่<br><span class="text-[9px]">No.</span></td><td class="border-none text-right font-bold">${document.getElementById('invNo').value || '-'}</td></tr>
-                                <tr><td class="border-none pt-1">วันที่<br><span class="text-[9px]">Date</span></td><td class="border-none text-right pt-1">${document.getElementById('invDate').value || '-'}</td></tr>
-                                <tr><td class="border-none pt-1">เครดิต<br><span class="text-[9px]">Credit</span></td><td class="border-none text-right pt-1">${document.getElementById('creditTerm').value || '-'}</td></tr>
-                                <tr><td class="border-none pt-1">วันครบกำหนด<br><span class="text-[9px]">Due date</span></td><td class="border-none text-right pt-1"></td></tr>
+                            <table class="w-full h-full">
+                                <tr><td>เลขที่<br><span class="text-[9px]">No.</span></td><td class="text-right font-bold text-sm">${document.getElementById('invNo').value || '-'}</td></tr>
+                                <tr><td class="pt-2">วันที่<br><span class="text-[9px]">Date</span></td><td class="text-right pt-2">${document.getElementById('invDate').value || '-'}</td></tr>
+                                <tr><td class="pt-2">เครดิต<br><span class="text-[9px]">Credit</span></td><td class="text-right pt-2">${document.getElementById('creditTerm').value || '-'}</td></tr>
+                                <tr><td class="pt-2">วันครบกำหนด<br><span class="text-[9px]">Due date</span></td><td class="text-right pt-2"></td></tr>
                             </table>
                         </div>
                     </div>
 
                     <div class="flex-grow flex flex-col">
-                        <table class="w-full text-[11px]">
+                        <table class="w-full text-[11px] product-table">
                             <thead>
-                                <tr class="excel-blue text-center">
+                                <tr class="theme-bg text-center">
                                     <th class="py-1 w-10 font-normal">ลำดับ<br><span class="text-[9px]">NO.</span></th>
                                     <th class="py-1 w-24 font-normal">รหัสสินค้า<br><span class="text-[9px]">CODE</span></th>
                                     <th class="py-1 font-normal">รายละเอียด<br><span class="text-[9px]">DESCRIPTION</span></th>
@@ -225,78 +271,78 @@
                             <tbody>
                                 ${items.map((item, idx) => `
                                     <tr>
-                                        <td class="text-center py-1 border-excel">${idx + 1}</td>
-                                        <td class="text-center py-1 border-excel">${item.code}</td>
-                                        <td class="py-1 px-2 border-excel">${item.desc}</td>
-                                        <td class="text-center py-1 border-excel">${item.qty.toLocaleString()}</td>
-                                        <td class="text-center py-1 border-excel">${item.unit}</td>
-                                        <td class="text-right py-1 px-2 border-excel">${item.price.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                                        <td class="text-right py-1 px-2 border-excel bg-gray-50">${item.total.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                        <td class="text-center py-1">${idx + 1}</td>
+                                        <td class="text-center py-1">${item.code}</td>
+                                        <td class="py-1 px-2">${item.desc}</td>
+                                        <td class="text-center py-1">${item.qty.toLocaleString()}</td>
+                                        <td class="text-center py-1">${item.unit}</td>
+                                        <td class="text-right py-1 px-2">${item.price.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                        <td class="text-right py-1 px-2 bg-gray-50">${item.total.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                     </tr>
                                 `).join('')}
-                                ${Array(10 - items.length > 0 ? 10 - items.length : 0).fill(0).map(() => `<tr><td class="h-6 border-excel"></td><td class="border-excel"></td><td class="border-excel"></td><td class="border-excel"></td><td class="border-excel"></td><td class="border-excel"></td><td class="border-excel bg-gray-50"></td></tr>`).join('')}
+                                ${Array(10 - items.length > 0 ? 10 - items.length : 0).fill(0).map(() => `<tr><td class="h-6"></td><td></td><td></td><td></td><td></td><td></td><td class="bg-gray-50"></td></tr>`).join('')}
                             </tbody>
                         </table>
                     </div>
 
-                    <div class="flex mt-2 text-[11px] border border-excel">
-                        <div class="w-2/3 flex flex-col justify-between border-r border-excel">
-                            <div class="flex p-2 border-b border-excel bg-gray-50">
+                    <div class="flex mt-2 text-[11px] border theme-border">
+                        <div class="w-2/3 flex flex-col justify-between border-r theme-border">
+                            <div class="flex p-2 border-b theme-border bg-gray-50">
                                 <span class="w-16">ตัวอักษร:</span>
                                 <span class="font-bold flex-grow text-center">(${ThaiBaht(grandTotal)})</span>
                             </div>
                             <div class="p-2 text-[10px]">
-                                <p class="mb-1 font-bold">หมายเหตุ :</p>
+                                <p class="mb-1 font-bold text-black">หมายเหตุ :</p>
                                 <p>1. กรณีชำระเงินด้วยเช็คกรุณาสั่งจ่ายเช็คขีดคร่อมในนาม "บริษัท พีพี ออโต้ ซัพพลาย จำกัด" เท่านั้น</p>
                                 <p>2. สินค้าตามรายการข้างต้นแม้จะได้ส่งมอบให้แก่ผู้ซื้อแล้วก็ยังคงเป็นทรัพย์สินของผู้ขายจนกว่าผู้ซื้อจะได้ชำระเงินเรียบร้อยแล้ว</p>
                                 <p>3. บริษัทฯ ขอสงวนสิทธิ์ในการแก้ไขใบกำกับภาษีภายใน 7 วัน นับจากวันที่ระบุในใบกำกับภาษี (ผิด ตก ยกเว้น E. & OE.)</p>
                             </div>
                         </div>
                         <div class="w-1/3">
-                            <table class="w-full h-full border-none">
+                            <table class="w-full h-full">
                                 <tr>
-                                    <td class="p-1 pl-2 border-b border-excel">รวมเงิน<br><span class="text-[9px]">TOTAL AMOUNT</span></td>
-                                    <td class="p-1 pr-2 border-b border-excel border-l text-right bg-gray-50">${subTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                    <td class="p-1 pl-2 border-b theme-border">รวมเงิน<br><span class="text-[9px]">TOTAL AMOUNT</span></td>
+                                    <td class="p-1 pr-2 border-b border-l theme-border text-right bg-gray-50">${subTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                 </tr>
                                 <tr>
-                                    <td class="p-1 pl-2 border-b border-excel">ส่วนลด<br><span class="text-[9px]">DISCOUNT</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${discountPercent}%</td>
-                                    <td class="p-1 pr-2 border-b border-excel border-l text-right bg-gray-50">${discountAmt > 0 ? discountAmt.toLocaleString(undefined, {minimumFractionDigits: 2}) : '-'}</td>
+                                    <td class="p-1 pl-2 border-b theme-border">ส่วนลด<br><span class="text-[9px]">DISCOUNT</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${discountPercent}%</td>
+                                    <td class="p-1 pr-2 border-b border-l theme-border text-right bg-gray-50">${discountAmt > 0 ? discountAmt.toLocaleString(undefined, {minimumFractionDigits: 2}) : '-'}</td>
                                 </tr>
                                 <tr>
-                                    <td class="p-1 pl-2 border-b border-excel">มูลค่าสินค้าหลังหักส่วนลด<br><span class="text-[9px]">TOTAL AMOUNT AFTER DISCOUNT</span></td>
-                                    <td class="p-1 pr-2 border-b border-excel border-l text-right bg-gray-50">${totalAfterDiscount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                    <td class="p-1 pl-2 border-b theme-border">มูลค่าสินค้าหลังหักส่วนลด<br><span class="text-[9px]">TOTAL AMOUNT AFTER DISCOUNT</span></td>
+                                    <td class="p-1 pr-2 border-b border-l theme-border text-right bg-gray-50">${totalAfterDiscount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                 </tr>
                                 <tr>
-                                    <td class="p-1 pl-2 border-b border-excel">ภาษีมูลค่าเพิ่ม<br><span class="text-[9px]">VAT</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 7%</td>
-                                    <td class="p-1 pr-2 border-b border-excel border-l text-right bg-gray-50">${vat.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                    <td class="p-1 pl-2 border-b theme-border">ภาษีมูลค่าเพิ่ม<br><span class="text-[9px]">VAT</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 7%</td>
+                                    <td class="p-1 pr-2 border-b border-l theme-border text-right bg-gray-50">${vat.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                 </tr>
-                                <tr class="excel-blue font-bold">
-                                    <td class="p-1 pl-2 border-none">จำนวนรวมทั้งสิ้น<br><span class="text-[9px] font-normal">GRAND TOTAL</span></td>
-                                    <td class="p-1 pr-2 border-none border-l text-right">${grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                <tr class="theme-bg font-bold">
+                                    <td class="p-1 pl-2">จำนวนรวมทั้งสิ้น<br><span class="text-[9px] font-normal">GRAND TOTAL</span></td>
+                                    <td class="p-1 pr-2 text-right text-sm" style="border-left: 1px solid white;">${grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                 </tr>
                             </table>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-3 mt-2 border border-excel text-[11px]">
-                        <div class="p-2 border-r border-excel flex flex-col justify-between h-24">
-                            <div class="text-center font-bold">ได้รับสินค้าตามรายการข้างบนไว้เรียบร้อยแล้ว</div>
+                    <div class="grid grid-cols-3 mt-2 border theme-border text-[11px]">
+                        <div class="p-2 border-r theme-border flex flex-col justify-between h-24">
+                            <div class="text-center font-bold text-black">ได้รับสินค้าตามรายการข้างบนไว้เรียบร้อยแล้ว</div>
                             <div>
-                                <div class="flex mb-1"><span class="w-16">ผู้รับสินค้า</span><span class="border-b border-black flex-grow"></span></div>
-                                <div class="flex"><span class="w-16">วันที่</span><span class="border-b border-black flex-grow"></span></div>
+                                <div class="flex mb-1 text-black"><span class="w-16">ผู้รับสินค้า</span><span class="border-b border-black flex-grow"></span></div>
+                                <div class="flex text-black"><span class="w-16">วันที่</span><span class="border-b border-black flex-grow"></span></div>
                             </div>
                         </div>
-                        <div class="p-2 border-r border-excel flex flex-col justify-end h-24">
+                        <div class="p-2 border-r theme-border flex flex-col justify-end h-24">
                             <div>
-                                <div class="flex mb-1"><span class="w-16">ผู้ส่งสินค้า</span><span class="border-b border-black flex-grow"></span></div>
-                                <div class="flex"><span class="w-16">วันที่</span><span class="border-b border-black flex-grow"></span></div>
+                                <div class="flex mb-1 text-black"><span class="w-16">ผู้ส่งสินค้า</span><span class="border-b border-black flex-grow"></span></div>
+                                <div class="flex text-black"><span class="w-16">วันที่</span><span class="border-b border-black flex-grow"></span></div>
                             </div>
                         </div>
                         <div class="p-2 flex flex-col justify-between h-24 text-center">
-                            <div class="font-bold">ในนาม บริษัท พีพี ออโต้ ซัพพลาย จำกัด</div>
+                            <div class="font-bold text-black">ในนาม บริษัท พีพี ออโต้ ซัพพลาย จำกัด</div>
                             <div>
                                 <div class="border-b border-black mx-4 mb-1 h-6"></div>
-                                <div>ผู้มีอำนาจลงนาม</div>
+                                <div class="text-black">ผู้มีอำนาจลงนาม</div>
                             </div>
                         </div>
                     </div>
@@ -305,14 +351,14 @@
             });
         }
 
-        // ==========================================
-        // ส่วนส่งข้อมูลไปบันทึก (แก้ให้ใช้ชื่อลูกค้าที่ตายตัว)
-        // ==========================================
         async function saveToDatabase() {
-            const scriptURL = 'https://script.google.com/macros/s/AKfycby_uqrQDEI1PbLriTlg4I3vjyZ-BLgH7JJZqBf-I3xPQz3bPLLKL6ffqygmuA5Ky1Jl/exec'; // อย่าลืมใส่ URL เดิมของคุณกลับเข้าไปนะครับ
+            const scriptURL = 'https://script.google.com/macros/s/AKfycby_uqrQDEI1PbLriTlg4I3vjyZ-BLgH7JJZqBf-I3xPQz3bPLLKL6ffqygmuA5Ky1Jl/exec';
             const invNo = document.getElementById('invNo').value;
             
-            if(!invNo) { alert('กรุณากรอกเลขที่ใบเสร็จก่อนบันทึกครับ'); return; }
+            if(!invNo) { 
+                alert('กรุณากรอกเลขที่ใบเสร็จก่อนบันทึกครับ'); 
+                return; 
+            }
 
             const subTotal = items.reduce((s, i) => s + i.total, 0);
             const discountPercent = parseFloat(document.getElementById('discountPercent').value) || 0;
@@ -322,7 +368,7 @@
 
             const data = {
                 invNo: invNo,
-                custName: "บริษัท เอ็น.เอ.อินเตอร์ อิเล็คโทรเพลทติ้ง จำกัด", // ล็อกชื่อลูกค้าตามที่ขอ
+                custName: "บริษัท เอ็น.เอ.อินเตอร์ อิเล็คโทรเพลทติ้ง จำกัด",
                 grandTotal: grandTotal
             };
 
@@ -336,9 +382,10 @@
                     body: JSON.stringify(data),
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' }
                 });
-                alert('✅ บันทึกข้อมูลสำเร็จ!');
+                alert('✅ บันทึกข้อมูลลง Google Sheets สำเร็จ!');
             } catch (error) {
-                alert('❌ ไม่สามารถบันทึกข้อมูลได้');
+                console.error('Error:', error);
+                alert('❌ ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง');
             } finally {
                 btn.innerHTML = '💾 บันทึกลง Google Sheets';
                 btn.disabled = false;
@@ -379,7 +426,6 @@
             return output;
         }
         
-        // Render ครั้งแรกให้แสดงโครงสร้างเปล่าๆ ก่อน
         renderPages();
     </script>
 </body>
