@@ -20,13 +20,16 @@
         </div>
     </div>
 
-    <div class="max-w-5xl mx-auto p-6 mt-5">
-        <h2 class="text-2xl font-bold text-gray-800 mb-6">📊 สรุปยอดขาย (Dashboard)</h2>
+    <div class="max-w-6xl mx-auto p-6 mt-5">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-800">📊 สรุปรายงานการขาย</h2>
+            <button onclick="location.reload()" class="bg-indigo-500 text-white px-4 py-2 rounded text-sm font-bold shadow-sm">🔄 รีเฟรชข้อมูล</button>
+        </div>
         
-        <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-blue-500">
                 <p class="text-gray-500 text-sm">ยอดขายเดือนนี้ (บาท)</p>
-                <h3 class="text-3xl font-bold text-gray-800" id="thisMonthTotal">กำลังโหลด...</h3>
+                <h3 class="text-3xl font-bold text-gray-800" id="thisMonthTotal">฿0.00</h3>
             </div>
             <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-green-500">
                 <p class="text-gray-500 text-sm">จำนวนใบกำกับภาษีเดือนนี้</p>
@@ -34,22 +37,47 @@
             </div>
             <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-purple-500">
                 <p class="text-gray-500 text-sm">ยอดขายรวมทั้งหมด (บาท)</p>
-                <h3 class="text-3xl font-bold text-gray-800" id="allTimeTotal">กำลังโหลด...</h3>
+                <h3 class="text-3xl font-bold text-gray-800" id="allTimeTotal">฿0.00</h3>
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-lg shadow-sm border">
-            <h3 class="font-bold text-gray-700 mb-4">📈 กราฟยอดขายรายเดือน (ย้อนหลัง 6 เดือน)</h3>
-            <canvas id="salesChart" height="100"></canvas>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div class="bg-white p-6 rounded-lg shadow-sm border">
+                <h3 class="font-bold text-gray-700 mb-4">📈 ยอดขายรวมรายเดือน (บาท)</h3>
+                <canvas id="salesChart" height="200"></canvas>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-sm border">
+                <h3 class="font-bold text-gray-700 mb-4">📦 จำนวนสินค้าที่ขายได้แยกตามรายการ (ชิ้น)</h3>
+                <canvas id="productQtyChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div class="bg-gray-50 p-4 border-b">
+                <h3 class="font-bold text-gray-700">📑 รายละเอียดจำนวนการขายแยกตามสินค้า</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead>
+                        <tr class="bg-gray-100 text-gray-600 font-bold">
+                            <th class="p-3 border-b">เดือน/ปี</th>
+                            <th class="p-3 border-b">รหัสสินค้า</th>
+                            <th class="p-3 border-b">รายการ</th>
+                            <th class="p-3 border-b text-right">จำนวนรวม (ชิ้น)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productTableBody">
+                        </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby_uqrQDEI1PbLriTlg4I3vjyZ-BLgH7JJZqBf-I3xPQz3bPLLKL6ffqygmuA5Ky1Jl/exec'; // ใช้ URL ของคุณ
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby_uqrQDEI1PbLriTlg4I3vjyZ-BLgH7JJZqBf-I3xPQz3bPLLKL6ffqygmuA5Ky1Jl/exec';
         
         window.onload = async function() {
             try {
-                // ดึงข้อมูล Invoice ทั้งหมดมาคำนวณ
                 const res = await fetch(SCRIPT_URL + "?type=invoice");
                 const history = await res.json();
                 
@@ -57,8 +85,9 @@
                 let thisMonth = 0;
                 let thisMonthDocs = 0;
                 
-                // จัดกลุ่มยอดขายรายเดือน สำหรับทำกราฟ
-                const monthlyData = {};
+                const monthlyRevenue = {}; // ยอดเงิน
+                const monthlyProductQty = {}; // จำนวนสินค้าแยกตามโค้ด
+                const productNames = {}; // เก็บชื่อรหัสสินค้าไว้ใช้แสดง
                 
                 const currentMonth = new Date().getMonth();
                 const currentYear = new Date().getFullYear();
@@ -71,65 +100,133 @@
                             const val = parseFloat(data.grandTotal);
                             allTime += val;
                             
-                            // เช็คว่าเป็นของเดือนนี้ไหม
                             if(d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
                                 thisMonth += val;
                                 thisMonthDocs++;
                             }
                             
-                            // จัดกลุ่มเดือน (เช่น "2026-03")
                             const monthKey = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0');
-                            if(!monthlyData[monthKey]) monthlyData[monthKey] = 0;
-                            monthlyData[monthKey] += val;
+                            
+                            // 1. เก็บยอดเงินรายเดือน
+                            if(!monthlyRevenue[monthKey]) monthlyRevenue[monthKey] = 0;
+                            monthlyRevenue[monthKey] += val;
+
+                            // 2. เก็บจำนวนสินค้าที่ขายได้ (Quantity)
+                            if(data.items && Array.isArray(data.items)) {
+                                if(!monthlyProductQty[monthKey]) monthlyProductQty[monthKey] = {};
+                                
+                                data.items.forEach(item => {
+                                    const code = item.code || "ไม่ระบุ";
+                                    const qty = parseFloat(item.qty) || 0;
+                                    const desc = item.desc || "";
+                                    
+                                    if(!monthlyProductQty[monthKey][code]) monthlyProductQty[monthKey][code] = 0;
+                                    monthlyProductQty[monthKey][code] += qty;
+                                    
+                                    if(!productNames[code]) productNames[code] = desc;
+                                });
+                            }
                         }
                     }
                 });
 
-                // อัปเดตตัวเลขบนหน้าจอ
+                // อัปเดตตัวเลขหน้าจอ
                 document.getElementById('allTimeTotal').innerText = "฿" + allTime.toLocaleString(undefined, {minimumFractionDigits: 2});
                 document.getElementById('thisMonthTotal').innerText = "฿" + thisMonth.toLocaleString(undefined, {minimumFractionDigits: 2});
                 document.getElementById('thisMonthCount').innerText = thisMonthDocs + " ใบ";
 
-                // วาดกราฟ
-                renderChart(monthlyData);
+                // จัดการข้อมูลสำหรับวาดกราฟ
+                const sortedMonths = Object.keys(monthlyRevenue).sort();
+                const last6Months = sortedMonths.slice(-6);
+
+                renderRevenueChart(last6Months, monthlyRevenue);
+                renderProductQtyChart(last6Months, monthlyProductQty);
+                renderProductTable(last6Months, monthlyProductQty, productNames);
                 
             } catch (err) {
-                console.error("โหลดข้อมูล Dashboard ไม่สำเร็จ", err);
+                console.error("โหลดข้อมูลไม่สำเร็จ", err);
             }
         };
 
-        function renderChart(monthlyData) {
-            // เรียงลำดับเดือนจากอดีต -> ปัจจุบัน
-            const sortedMonths = Object.keys(monthlyData).sort();
-            
-            // ดึงมาแค่ 6 เดือนล่าสุด
-            const last6Months = sortedMonths.slice(-6);
-            
-            const labels = last6Months.map(m => {
-                const parts = m.split('-');
-                const monthNames = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-                return monthNames[parseInt(parts[1])-1] + " " + parts[0];
-            });
-            
-            const dataValues = last6Months.map(m => monthlyData[m]);
+        function getThaiMonthYear(mKey) {
+            const parts = mKey.split('-');
+            const monthNames = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+            return monthNames[parseInt(parts[1])-1] + " " + (parseInt(parts[0]) + 543).toString().substr(2);
+        }
 
-            const ctx = document.getElementById('salesChart').getContext('2d');
-            new Chart(ctx, {
+        // กราฟ 1: ยอดเงินรวม
+        function renderRevenueChart(labels, monthlyRevenue) {
+            const displayLabels = labels.map(m => getThaiMonthYear(m));
+            const dataValues = labels.map(m => monthlyRevenue[m]);
+
+            new Chart(document.getElementById('salesChart'), {
                 type: 'bar',
                 data: {
-                    labels: labels,
+                    labels: displayLabels,
                     datasets: [{
-                        label: 'ยอดขาย (บาท)',
+                        label: 'ยอดเงิน (บาท)',
                         data: dataValues,
-                        backgroundColor: 'rgba(79, 70, 229, 0.6)',
-                        borderColor: 'rgba(79, 70, 229, 1)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                        borderColor: '#2563eb',
                         borderWidth: 1,
                         borderRadius: 4
                     }]
-                },
+                }
+            });
+        }
+
+        // กราฟ 2: จำนวนสินค้า (Stacked Bar)
+        function renderProductQtyChart(months, monthlyProductQty) {
+            const displayLabels = months.map(m => getThaiMonthYear(m));
+            
+            // ค้นหารหัสสินค้าทั้งหมดที่มีในเดือนที่เลือก
+            const allProductCodes = new Set();
+            months.forEach(m => {
+                if(monthlyProductQty[m]) {
+                    Object.keys(monthlyProductQty[m]).forEach(code => allProductCodes.add(code));
+                }
+            });
+
+            // สร้าง Dataset สำหรับแต่ละสินค้า
+            const datasets = Array.from(allProductCodes).map((code, index) => {
+                const colors = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
+                return {
+                    label: code,
+                    data: months.map(m => (monthlyProductQty[m] && monthlyProductQty[m][code]) ? monthlyProductQty[m][code] : 0),
+                    backgroundColor: colors[index % colors.length]
+                };
+            });
+
+            new Chart(document.getElementById('productQtyChart'), {
+                type: 'bar',
+                data: { labels: displayLabels, datasets: datasets },
                 options: {
                     responsive: true,
-                    scales: { y: { beginAtZero: true } }
+                    scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } },
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
+                }
+            });
+        }
+
+        // ตารางสรุป
+        function renderProductTable(months, monthlyProductQty, productNames) {
+            const tableBody = document.getElementById('productTableBody');
+            tableBody.innerHTML = '';
+            
+            // เรียงจากเดือนล่าสุดขึ้นก่อน
+            months.slice().reverse().forEach(m => {
+                if(monthlyProductQty[m]) {
+                    Object.keys(monthlyProductQty[m]).forEach(code => {
+                        const row = `
+                            <tr class="hover:bg-gray-50 border-b">
+                                <td class="p-3">${getThaiMonthYear(m)}</td>
+                                <td class="p-3 font-bold text-indigo-700">${code}</td>
+                                <td class="p-3 text-gray-600">${productNames[code] || '-'}</td>
+                                <td class="p-3 text-right font-bold text-gray-800">${monthlyProductQty[m][code].toLocaleString()}</td>
+                            </tr>
+                        `;
+                        tableBody.innerHTML += row;
+                    });
                 }
             });
         }
