@@ -1,0 +1,199 @@
+<?!= include('auth_script'); ?>
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายงานภาษีซื้อ - Paul's Dev</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; font-size: 13px; color: #333; }
+        .a4-page { width: 210mm; height: 297mm; padding: 12mm 15mm; margin: 10px auto; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; box-sizing: border-box; }
+        @media print { .no-print { display: none !important; } @page { size: A4 portrait; margin: 0mm; } body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .a4-page { margin: 0 !important; box-shadow: none !important; page-break-after: always; height: 297mm !important; overflow: hidden; page-break-inside: avoid; } #printArea .a4-page:last-child { page-break-after: auto !important; } }
+        table { border-collapse: collapse; }
+        .page-1 .theme-bg { background-color: #8B0000 !important; color: white !important; } .page-1 .theme-border { border-color: #8B0000 !important; }
+        .page-2 .theme-bg { background-color: #E65C00 !important; color: white !important; } .page-2 .theme-border { border-color: #E65C00 !important; }
+        .page-3 .theme-bg { background-color: #0047AB !important; color: white !important; } .page-3 .theme-border { border-color: #0047AB !important; }
+    </style>
+</head>
+<div class="no-print bg-white shadow-md border-b-4 border-orange-500 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto flex items-center">
+        <div class="px-6 py-4 font-bold text-xl text-slate-800 border-r bg-slate-50 flex items-center gap-2">
+            ⚙️ PP AUTO ERP
+        </div>
+        
+        <div class="flex flex-1 overflow-x-auto no-scrollbar">
+            <? menuConfig.forEach(function(item) { ?>
+                <a href="<?= item.url ?>" 
+                   target="_top" 
+                   class="px-4 py-4 font-bold flex-1 text-center transition-all whitespace-nowrap
+                   <?= item.isActive ? 'bg-orange-600 text-white shadow-inner' : 'hover:bg-slate-100 text-slate-600' ?>">
+                   <?= item.label ?>
+                </a>
+            <? }); ?>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* ซ่อน Scrollbar สำหรับกรณีเปิดในมือถือแล้วเมนูยาวเกินจอ */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
+    <div class="max-w-7xl mx-auto p-6 mt-6">
+        
+        <div class="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
+            <div>
+                <h2 class="text-3xl font-black text-slate-800 tracking-tight">สมุดทะเบียนภาษีซื้อ</h2>
+                <p class="text-slate-500 mt-1 font-medium">ตรวจสอบ แก้ไข และบริหารจัดการบิลภาษีซื้อทั้งหมด</p>
+            </div>
+            <div class="flex gap-3 w-full md:w-auto">
+                <input type="text" id="searchInput" oninput="filterTable()" placeholder="🔍 ค้นหาเลขบิล หรือ ชื่อร้าน..." class="flex-grow md:w-80 p-3 rounded-2xl border-2 border-slate-200 outline-none focus:border-orange-500 shadow-sm font-bold transition-all">
+                <button onclick="exportToExcel()" class="bg-green-600 text-white px-5 py-3 rounded-2xl font-bold hover:bg-green-700 transition shadow-lg shadow-green-200">📊 Excel</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div class="bg-white p-8 rounded-[2rem] shadow-sm border-l-8 border-orange-500">
+                <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">ยอดซื้อสะสม</p>
+                <h3 id="statTotal" class="text-3xl font-black text-slate-800 mt-2">฿0.00</h3>
+            </div>
+            <div class="bg-white p-8 rounded-[2rem] shadow-sm border-l-8 border-indigo-500">
+                <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">VAT 7%</p>
+                <h3 id="statVat" class="text-3xl font-black text-indigo-600 mt-2">฿0.00</h3>
+            </div>
+            <div class="bg-white p-8 rounded-[2rem] shadow-sm border-l-8 border-red-500">
+                <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">ค้างจ่าย</p>
+                <h3 id="statUnpaid" class="text-3xl font-black text-red-500 mt-2">฿0.00</h3>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-[2rem] shadow-xl border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse" id="taxTable">
+                    <thead>
+                        <tr class="bg-slate-800 text-slate-200 uppercase text-[11px] tracking-widest font-bold">
+                            <th class="p-5">วันที่บิล</th>
+                            <th class="p-5">เลขที่ใบกำกับ</th>
+                            <th class="p-5">ชื่อซัพพลายเออร์</th>
+                            <th class="p-5 text-right">ยอดรวม</th>
+                            <th class="p-5 text-center">สถานะ</th>
+                            <th class="p-5 text-right">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-100 text-slate-700">
+                        <tr><td colspan="6" class="p-20 text-center font-bold text-slate-400 italic animate-pulse">⏳ กำลังโหลดข้อมูล...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] transform translate-y-20 opacity-0 transition-all duration-500 pointer-events-none">
+        <div id="toast-card" class="bg-slate-800 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 min-w-[320px] border border-white/10">
+            <div id="toast-icon" class="text-2xl"></div>
+            <p id="toast-msg" class="font-bold text-sm"></p>
+        </div>
+    </div>
+
+    <script>
+        let allData = [];
+
+        window.onload = function() {
+            loadData();
+        };
+
+        function loadData() {
+            google.script.run.withSuccessHandler(res => {
+                allData = res.history;
+                document.getElementById('statTotal').innerText = '฿' + res.stats.total.toLocaleString(undefined, {minimumFractionDigits:2});
+                document.getElementById('statVat').innerText = '฿' + res.stats.vat.toLocaleString(undefined, {minimumFractionDigits:2});
+                document.getElementById('statUnpaid').innerText = '฿' + res.stats.unpaid.toLocaleString(undefined, {minimumFractionDigits:2});
+                renderTable(allData);
+            }).getPurchaseReportData();
+        }
+
+        function renderTable(data) {
+            let html = '';
+            if (data.length === 0) {
+                html = '<tr><td colspan="6" class="p-10 text-center text-slate-400">ไม่พบข้อมูล</td></tr>';
+            } else {
+                data.forEach(item => {
+                    const isPaid = item.status.includes('จ่ายแล้ว') || item.status.includes('ชำระแล้ว');
+                    const badgeClass = isPaid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+
+                    html += `
+                        <tr class="hover:bg-slate-50 transition border-b border-slate-50 group">
+                            <td class="p-4 text-xs font-medium text-slate-500">${item.date}</td>
+                            <td class="p-4 text-sm font-bold text-slate-800">${item.taxNo}</td>
+                            <td class="p-4 text-sm text-slate-600">${item.vendor}</td>
+                            <td class="p-4 text-sm font-black text-right text-slate-800">฿${item.total.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+                            <td class="p-4 text-center">
+                                <select onchange="updateStatus('${item.taxNo}', this.value)" class="${badgeClass} text-[10px] font-bold px-3 py-1.5 rounded-xl border-none outline-none cursor-pointer focus:ring-2 ring-orange-200">
+                                    <option value="จ่ายแล้ว (โอนเงิน/เช็ค)" ${isPaid ? 'selected' : ''}>🟢 จ่ายแล้ว</option>
+                                    <option value="ยังไม่จ่าย (ค้างชำระ)" ${!isPaid ? 'selected' : ''}>🔴 ยังไม่จ่าย</option>
+                                </select>
+                            </td>
+                            <td class="p-4 text-right flex gap-2 justify-end">
+                                <button onclick="window.top.location.href='<?= ScriptApp.getService().getUrl(); ?>?page=purchase&editNo=${encodeURIComponent(item.taxNo)}'" 
+                                        class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition shadow-sm" title="แก้ไข">✏️</button>
+                                
+                                <button onclick="confirmDelete('${item.taxNo}')" 
+                                        class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition shadow-sm" title="ลบ">🗑️</button>
+                                
+                                ${item.img ? `<a href="${item.img}" target="_blank" class="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-800 hover:text-white transition shadow-sm">👁️</a>` : ''}
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+            document.getElementById('tableBody').innerHTML = html;
+        }
+
+        // 🔍 ระบบ Search (ใช้งานได้จริง)
+        function filterTable() {
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+            const filtered = allData.filter(i => 
+                i.taxNo.toLowerCase().includes(query) || 
+                i.vendor.toLowerCase().includes(query)
+            );
+            renderTable(filtered);
+        }
+
+        function updateStatus(taxNo, newStatus) {
+            showToast('⏳ กำลังอัปเดตสถานะ...', 'success');
+            google.script.run.withSuccessHandler(res => {
+                if(res.status === 'success') { showToast('✅ อัปเดตสำเร็จ', 'success'); loadData(); }
+            }).updatePurchaseStatus(taxNo, newStatus);
+        }
+
+        function confirmDelete(taxNo) {
+            if(confirm('⚠️ คุณแน่ใจหรือไม่ว่าต้องการลบบิลเลขที่: ' + taxNo + ' ?')) {
+                showToast('🗑️ กำลังลบข้อมูล...', 'success');
+                google.script.run.withSuccessHandler(res => {
+                    if(res.status === 'success') { showToast('✅ ลบข้อมูลสำเร็จ', 'success'); loadData(); }
+                }).deletePurchase(taxNo);
+            }
+        }
+
+        function exportToExcel() {
+            let csv = "\uFEFFวันที่,เลขที่ใบกำกับ,ร้านค้า,ยอดเงินรวม,สถานะ\n";
+            allData.forEach(r => csv += `${r.date},${r.taxNo},${r.vendor},${r.total},${r.status}\n`);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `รายงานภาษีซื้อ_${new Date().toLocaleDateString()}.csv`;
+            link.click();
+        }
+
+        function showToast(msg, type) {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            document.getElementById('toast-icon').innerText = type === 'success' ? '🚀' : '⚠️';
+            t.classList.remove('translate-y-20', 'opacity-0');
+            t.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(() => { t.classList.remove('translate-y-0', 'opacity-100'); t.classList.add('translate-y-20', 'opacity-0'); }, 3000);
+        }
+    </script>
+</body>
+</html>
