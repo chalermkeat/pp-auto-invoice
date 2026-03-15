@@ -1,0 +1,174 @@
+<?!= include('auth_script'); ?>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สรุปภาษี ภ.พ.30 - PP AUTO ERP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; font-size: 13px; color: #333; }
+        .a4-page { width: 210mm; height: 297mm; padding: 12mm 15mm; margin: 10px auto; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; box-sizing: border-box; }
+        @media print { .no-print { display: none !important; } @page { size: A4 portrait; margin: 0mm; } body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .a4-page { margin: 0 !important; box-shadow: none !important; page-break-after: always; height: 297mm !important; overflow: hidden; page-break-inside: avoid; } #printArea .a4-page:last-child { page-break-after: auto !important; } }
+        table { border-collapse: collapse; }
+        .theme-bg-orange { background-color: #ea580c !important; color: white !important; }
+        .theme-border-orange { border-color: #ea580c !important; }
+        .net-card-positive { border: 4px solid #ea580c; background-color: #fff7ed; } /* ส้ม: ต้องจ่ายเพิ่ม */
+        .net-card-negative { border: 4px solid #16a34a; background-color: #f0fdf4; } /* เขียว: ขอคืนได้ */
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+<div class="no-print bg-white shadow-md border-b-4 border-orange-500 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto flex items-center">
+        <div class="px-6 py-4 font-bold text-xl text-slate-800 border-r bg-slate-50 flex items-center gap-2">
+            ⚙️ PP AUTO ERP
+        </div>
+        
+        <div class="flex flex-1 overflow-x-auto no-scrollbar">
+            <? menuConfig.forEach(function(item) { ?>
+                <a href="<?= item.url ?>" 
+                   target="_top" 
+                   class="px-4 py-4 font-bold flex-1 text-center transition-all whitespace-nowrap
+                   <?= item.isActive ? 'bg-orange-600 text-white shadow-inner' : 'hover:bg-slate-100 text-slate-600' ?>">
+                   <?= item.label ?>
+                </a>
+            <? }); ?>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* ซ่อน Scrollbar สำหรับกรณีเปิดในมือถือแล้วเมนูยาวเกินจอ */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
+
+<div class="max-w-7xl mx-auto p-6 mt-6 no-print">
+    
+    <div class="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
+        <div>
+            <h2 class="text-3xl font-black text-slate-800 tracking-tight">💡 VAT Intelligence Center</h2>
+            <p class="text-slate-500 font-medium">เปรียบเทียบภาษีซื้อ-ภาษีขาย และเตรียมข้อมูลยื่น ภ.พ.30</p>
+        </div>
+        <div class="text-right">
+            <span class="bg-slate-800 text-white px-5 py-2 rounded-2xl text-xs font-bold shadow-lg" id="currentMonthDisplay">
+                รอบภาษี: กำลังโหลด...
+            </span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div class="bg-indigo-700 p-8 rounded-[2.5rem] text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
+            <div class="relative z-10">
+                <p class="text-indigo-100 text-[10px] font-bold uppercase tracking-widest">ภาษีขาย (Output VAT)</p>
+                <h3 id="vatOutput" class="text-4xl font-black mt-2">฿0.00</h3>
+            </div>
+            <div class="absolute -right-4 -bottom-4 text-8xl opacity-10">📤</div>
+        </div>
+
+        <div class="bg-white p-8 rounded-[2.5rem] border-2 border-slate-100 shadow-sm relative overflow-hidden">
+            <div class="relative z-10">
+                <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">ภาษีซื้อ (Input VAT)</p>
+                <h3 id="vatInput" class="text-4xl font-black text-slate-800 mt-2">฿0.00</h3>
+            </div>
+            <div class="absolute -right-4 -bottom-4 text-8xl text-slate-50">📥</div>
+        </div>
+
+        <div id="netCard" class="p-8 rounded-[2.5rem] shadow-2xl transition-all duration-500 flex flex-col justify-center">
+            <p id="netLabel" class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">ยอดสุทธิที่ต้องจัดการ</p>
+            <h3 id="vatNet" class="text-4xl font-black mt-2 text-slate-800">฿0.00</h3>
+            <div id="statusBadge" class="inline-block mt-4 px-4 py-1.5 rounded-full text-[10px] font-black uppercase text-center w-fit">
+                Checking...
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-slate-900 rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden">
+        <div class="flex items-center gap-4 mb-10">
+            <div class="bg-orange-500 p-3 rounded-2xl shadow-lg shadow-orange-500/30">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            </div>
+            <h4 class="text-xl font-bold">ข้อมูลสำหรับกรอกแบบ ภ.พ.30</h4>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12 relative z-10">
+            <div class="space-y-8">
+                <div class="border-b border-slate-700 pb-5">
+                    <p class="text-slate-500 text-[10px] font-bold uppercase mb-2">ยอดขายทั้งหมด (ไม่รวม VAT)</p>
+                    <p id="guideSalesBase" class="text-3xl font-bold">฿0.00</p>
+                </div>
+                <div class="border-b border-slate-700 pb-5">
+                    <p class="text-slate-500 text-[10px] font-bold uppercase mb-2">ยอดซื้อทั้งหมด (ที่หักภาษีได้)</p>
+                    <p id="guidePurchaseBase" class="text-3xl font-bold">฿0.00</p>
+                </div>
+            </div>
+            <div class="bg-slate-800/50 p-8 rounded-3xl border border-slate-700">
+                <p class="text-orange-400 text-xs font-black uppercase mb-4 tracking-widest flex items-center gap-2">
+                    <span class="w-2 h-2 bg-orange-400 rounded-full animate-ping"></span> คำแนะนำจากระบบ
+                </p>
+                <p id="aiAdvice" class="text-slate-300 text-sm leading-relaxed font-light italic">
+                    กำลังวิเคราะห์ข้อมูล...
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] transform translate-y-20 opacity-0 transition-all duration-500 pointer-events-none">
+    <div id="toast-card" class="bg-slate-800 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/10">
+        <div id="toast-icon">🚀</div>
+        <p id="toast-msg" class="font-bold text-sm"></p>
+    </div>
+</div>
+
+<script>
+    window.onload = function() {
+        updateVatDashboard();
+    };
+
+    function updateVatDashboard() {
+        const now = new Date();
+        const monthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        
+        document.getElementById('currentMonthDisplay').innerText = `รอบภาษี: ${monthNames[now.getMonth()]} ${now.getFullYear() + 543}`;
+
+        google.script.run.withSuccessHandler(res => {
+            document.getElementById('vatOutput').innerText = '฿' + res.salesVat.toLocaleString(undefined, {minimumFractionDigits:2});
+            document.getElementById('vatInput').innerText = '฿' + res.purchaseVat.toLocaleString(undefined, {minimumFractionDigits:2});
+            document.getElementById('guideSalesBase').innerText = '฿' + res.salesBase.toLocaleString(undefined, {minimumFractionDigits:2});
+            document.getElementById('guidePurchaseBase').innerText = '฿' + res.purchaseBase.toLocaleString(undefined, {minimumFractionDigits:2});
+            
+            const net = res.netVat;
+            const vatNetEl = document.getElementById('vatNet');
+            const netCard = document.getElementById('netCard');
+            const statusBadge = document.getElementById('statusBadge');
+            
+            vatNetEl.innerText = '฿' + Math.abs(net).toLocaleString(undefined, {minimumFractionDigits:2});
+            
+            if (net > 0) {
+                netCard.className = "p-8 rounded-[2.5rem] shadow-2xl transition-all duration-500 flex flex-col justify-center net-card-positive";
+                statusBadge.innerText = '⚠️ ต้องชำระภาษีเพิ่ม';
+                statusBadge.className = 'inline-block mt-4 px-4 py-1.5 rounded-full text-[10px] font-black uppercase text-center w-fit bg-orange-600 text-white';
+                document.getElementById('aiAdvice').innerText = "คุณเบิ้มครับ เดือนนี้มียอดขายมากกว่ายอดซื้อ จึงมีภาษีส่วนต่างที่ต้องนำส่งสรรพากรจำนวน " + net.toLocaleString() + " บาท ครับ";
+            } else {
+                netCard.className = "p-8 rounded-[2.5rem] shadow-2xl transition-all duration-500 flex flex-col justify-center net-card-negative";
+                statusBadge.innerText = '✅ มีภาษีชำระเกิน';
+                statusBadge.className = 'inline-block mt-4 px-4 py-1.5 rounded-full text-[10px] font-black uppercase text-center w-fit bg-green-600 text-white';
+                document.getElementById('aiAdvice').innerText = "ข่าวดีครับ! เดือนนี้ภาษีซื้อเยอะกว่าภาษีขาย ยอดส่วนต่าง " + Math.abs(net).toLocaleString() + " บาท สามารถนำไปสมทบเดือนหน้าได้ครับ";
+            }
+            showToast("วิเคราะห์ข้อมูล VAT เรียบร้อย");
+        }).getMonthlyVatReport(now.getMonth() + 1, now.getFullYear());
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        document.getElementById('toast-msg').innerText = msg;
+        t.classList.remove('translate-y-20', 'opacity-0');
+        t.classList.add('translate-y-0', 'opacity-100');
+        setTimeout(() => { t.classList.remove('translate-y-0', 'opacity-100'); t.classList.add('translate-y-20', 'opacity-0'); }, 3000);
+    }
+</script>
+</body>
+</html>
