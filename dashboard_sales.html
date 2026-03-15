@@ -1,0 +1,86 @@
+<?!= include('auth_script'); ?>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายงานภาษีขาย - PP AUTO ERP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; font-size: 13px; color: #333; }
+        .a4-page { width: 210mm; height: 297mm; padding: 12mm 15mm; margin: 10px auto; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen pb-10">
+
+<?!= include('navbar', menuConfig); ?>
+
+<div class="max-w-7xl mx-auto p-6 mt-6">
+    <div class="flex justify-between items-end mb-8">
+        <div>
+            <h2 class="text-3xl font-black text-slate-800 tracking-tight">📈 รายงานภาษีขาย</h2>
+            <p class="text-slate-500 font-medium italic">สรุปรายการภาษีขายจากทุกช่องทาง</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+        <div class="bg-white p-8 rounded-[2rem] shadow-sm border-l-8 border-indigo-600">
+            <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">ยอดขายสะสมเดือนนี้</p>
+            <h3 id="statTotal" class="text-3xl font-black text-slate-800 mt-2">฿0.00</h3>
+        </div>
+        <div class="bg-white p-8 rounded-[2rem] shadow-sm border-l-8 border-green-500">
+            <p class="text-slate-400 text-xs font-bold uppercase tracking-widest">ภาษีขายเดือนนี้ (VAT)</p>
+            <h3 id="statVat" class="text-3xl font-black text-green-600 mt-2">฿0.00</h3>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-[2rem] shadow-xl border border-slate-200 overflow-hidden">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-slate-800 text-white uppercase text-[10px] font-bold tracking-widest">
+                    <th class="p-5">วันที่</th>
+                    <th class="p-5">เลขที่บิล</th>
+                    <th class="p-5">ชื่อลูกค้า</th>
+                    <th class="p-5 text-right">ยอดรวม</th>
+                    <th class="p-5 text-center">ที่มา</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody" class="divide-y divide-slate-100">
+                <tr><td colspan="5" class="p-20 text-center italic text-slate-400">⏳ กำลังรวบรวมข้อมูลภาษีจากฐานข้อมูล...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    window.onload = function() {
+        google.script.run.withSuccessHandler(res => {
+            document.getElementById('statTotal').innerText = '฿' + res.stats.total.toLocaleString(undefined, {minimumFractionDigits:2});
+            document.getElementById('statVat').innerText = '฿' + res.stats.vat.toLocaleString(undefined, {minimumFractionDigits:2});
+            
+            let html = '';
+            res.history.forEach(item => {
+                const isSystem = item.source === 'System';
+                const sourceBadge = isSystem ? 'bg-blue-100 text-blue-700' : 'bg-indigo-100 text-indigo-700';
+                
+                html += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4 text-slate-500 font-medium">${item.date}</td>
+                        <td class="p-4 font-bold text-slate-800">${item.taxNo}</td>
+                        <td class="p-4 text-slate-600">${item.customer}</td>
+                        <td class="p-4 text-right font-black text-slate-800">฿${item.total.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+                        <td class="p-4 text-center">
+                            <span class="${sourceBadge} text-[9px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter">
+                                ${isSystem ? '🤖 อัตโนมัติ' : '📝 คีย์เอง'}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+            document.getElementById('tableBody').innerHTML = html || '<tr><td colspan="5" class="p-10 text-center">ไม่พบข้อมูล</td></tr>';
+        }).getSalesTaxReportData();
+    };
+</script>
+</body>
+</html>
