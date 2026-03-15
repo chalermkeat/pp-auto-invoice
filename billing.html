@@ -1,5 +1,8 @@
+<?!= include('auth_script'); ?>
 <!DOCTYPE html>
 <html lang="th">
+
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,15 +19,33 @@
         .page-3 .theme-bg { background-color: #0047AB !important; color: white !important; } .page-3 .theme-border { border-color: #0047AB !important; }
     </style>
 </head>
-<body class="bg-gray-100 pb-20">
-    <div class="no-print bg-white shadow-md border-b-4 border-indigo-600 sticky top-0 z-40">
-        <div class="max-w-6xl mx-auto flex">
-            <div class="px-6 py-4 font-bold text-xl text-indigo-900 border-r bg-indigo-50 flex items-center gap-2">⚙️ Paul's Dev</div>
-            <a href="dashboard.html" class="px-6 py-4 font-bold flex-1 text-center bg-gray-200 text-gray-600 hover:bg-gray-300">📊 Dashboard</a>
-            <a href="index.html" class="px-6 py-4 font-bold flex-1 text-center bg-gray-200 text-gray-600 hover:bg-gray-300">📝 1. ออกใบกำกับภาษี</a>
-            <a href="billing.html" class="px-6 py-4 font-bold flex-1 text-center bg-indigo-600 text-white border-b-4 border-indigo-900">📅 2. ทำใบวางบิล</a>
+<div class="no-print bg-white shadow-md border-b-4 border-orange-500 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto flex items-center">
+        <div class="px-6 py-4 font-bold text-xl text-slate-800 border-r bg-slate-50 flex items-center gap-2">
+            ⚙️ PP AUTO ERP
+        </div>
+        
+        <div class="flex flex-1 overflow-x-auto no-scrollbar">
+            <? menuConfig.forEach(function(item) { ?>
+                <a href="<?= item.url ?>" 
+                   target="_top" 
+                   class="px-4 py-4 font-bold flex-1 text-center transition-all whitespace-nowrap
+                   <?= item.isActive ? 'bg-orange-600 text-white shadow-inner' : 'hover:bg-slate-100 text-slate-600' ?>">
+                   <?= item.label ?>
+                </a>
+            <? }); ?>
         </div>
     </div>
+</div>
+
+
+
+<style>
+    /* ซ่อน Scrollbar สำหรับกรณีเปิดในมือถือแล้วเมนูยาวเกินจอ */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
+</div>
 
     <div class="no-print max-w-5xl mx-auto p-6 bg-white shadow-md mt-5 rounded-lg border border-gray-200">
         <div class="flex justify-between items-center mb-4">
@@ -226,5 +247,40 @@
 
         function ThaiBaht(Number){if(Number==0)return"ศูนย์บาทถ้วน";var number=Number.toFixed(2).split(".");var baht=number[0];var satang=number[1];var output="";var thaiNumber=["ศูนย์","หนึ่ง","สอง","สาม","สี่","ห้า","หก","เจ็ด","แปด","เก้า"];var thaiUnit=["","สิบ","ร้อย","พัน","หมื่น","แสน","ล้าน"];for(var i=0;i<baht.length;i++){var n=baht.substr(i,1);if(n!=0){if(i==(baht.length-1)&&n==1&&baht.length>1)output+="เอ็ด";else if(i==(baht.length-2)&&n==2)output+="ยี่สิบ";else if(i==(baht.length-2)&&n==1)output+="สิบ";else output+=thaiNumber[n]+thaiUnit[baht.length-i-1]}}output+="บาท";if(satang=="00")output+="ถ้วน";else{for(var i=0;i<satang.length;i++){var n=satang.substr(i,1);if(n!=0){if(i==(satang.length-1)&&n==1)output+="เอ็ด";else if(i==(satang.length-2)&&n==2)output+="ยี่สิบ";else if(i==(satang.length-2)&&n==1)output+="สิบ";else output+=thaiNumber[n]+thaiUnit[satang.length-i-1]}}output+="สตางค์"}return output}
     </script>
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] transform translate-y-20 opacity-0 transition-all duration-500 pointer-events-none">
+    <div id="toast-card" class="bg-slate-800 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 min-w-[300px] border border-slate-700">
+        <div id="toast-icon" class="text-2xl"></div>
+        <div>
+            <p id="toast-msg" class="font-bold text-sm"></p>
+            <p class="text-[10px] text-slate-400 uppercase tracking-widest">System Notification</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// ฟังก์ชันเรียกใช้การแจ้งเตือนแบบใหม่แทน alert()
+function showToast(msg, type = 'success') {
+    const toast = document.getElementById('toast');
+    const toastMsg = document.getElementById('toast-msg');
+    const toastIcon = document.getElementById('toast-icon');
+    const toastCard = document.getElementById('toast-card');
+    
+    toastMsg.innerText = msg;
+    toastIcon.innerText = type === 'success' ? '✅' : '⚠️';
+    toastCard.className = type === 'success' 
+        ? "bg-slate-800 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 min-w-[300px] border border-green-500/30"
+        : "bg-slate-800 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 min-w-[300px] border border-red-500/30";
+
+    // แสดง Toast
+    toast.classList.remove('translate-y-20', 'opacity-0');
+    toast.classList.add('translate-y-0', 'opacity-100');
+    
+    // หายไปเองใน 3 วินาที
+    setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+    }, 3000);
+}
+</script>
 </body>
 </html>
