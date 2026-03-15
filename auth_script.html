@@ -1,0 +1,22 @@
+<script>
+  function checkAuth() {
+    const session = JSON.parse(localStorage.getItem('pp_auto_session'));
+    const page = new URLSearchParams(window.location.search).get('page');
+    const now = new Date().getTime();
+
+    if (!session || now > session.expiry) {
+      if (page !== 'login' && page !== null) {
+        localStorage.removeItem('pp_auto_session');
+        window.location.href = "<?= ScriptApp.getService().getUrl(); ?>?page=login";
+      }
+    } else if (page === 'login') {
+      window.location.href = "<?= ScriptApp.getService().getUrl(); ?>?page=dashboard";
+    }
+  }
+  window.addEventListener('load', checkAuth);
+
+  function logout() {
+    localStorage.removeItem('pp_auto_session');
+    window.location.href = "<?= ScriptApp.getService().getUrl(); ?>?page=login";
+  }
+</script>
