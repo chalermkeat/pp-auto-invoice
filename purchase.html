@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <?!= include('auth_script'); ?>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen flex">
+  <div class="w-64 bg-slate-900 text-white p-6 shadow-xl">
+    <h1 class="text-2xl font-bold mb-10 text-indigo-400">PP AUTO ERP</h1>
+    <nav class="space-y-4">
+      <a href="<?= ScriptApp.getService().getUrl(); ?>?page=dashboard" class="block p-3 rounded-xl hover:bg-slate-800">🏠 Dashboard</a>
+      <a href="#" class="block p-3 rounded-xl bg-indigo-600 font-bold">📥 ภาษีซื้อ (Pro)</a>
+      <button onclick="logout()" class="w-full text-left p-3 text-red-400 hover:bg-slate-800 rounded-xl">🚪 ออกจากระบบ</button>
+    </nav>
+  </div>
+
+  <div class="flex-1 p-10">
+    <div class="max-w-4xl mx-auto">
+      <div class="flex justify-between items-center mb-8">
+        <h2 class="text-3xl font-bold text-slate-800">บันทึกภาษีซื้อ</h2>
+        <button onclick="startAI()" class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:scale-105 transition">✨ AI Scan บิล</button>
+      </div>
+
+      <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
+        <div class="grid grid-cols-2 gap-6">
+          <div class="space-y-4">
+            <label class="block text-sm font-bold text-slate-500">เลขที่ใบกำกับภาษี</label>
+            <input type="text" id="taxNo" class="w-full border-2 p-3 rounded-2xl focus:border-indigo-500 outline-none">
+            
+            <label class="block text-sm font-bold text-slate-500">เลขผู้เสียภาษีผู้ขาย (13 หลัก)</label>
+            <input type="text" id="taxID" onblur="matchVendor(this.value)" class="w-full border-2 p-3 rounded-2xl focus:border-indigo-500 outline-none">
+            
+            <label class="block text-sm font-bold text-slate-500">ชื่อซัพพลายเออร์</label>
+            <input type="text" id="vendor" class="w-full bg-slate-50 border-2 p-3 rounded-2xl outline-none" readonly>
+          </div>
+
+          <div class="space-y-4">
+            <label class="block text-sm font-bold text-slate-500">ยอดเงินรวม (Grand Total)</label>
+            <input type="number" id="total" onkeyup="calcVAT()" class="w-full border-2 p-3 rounded-2xl text-2xl font-bold text-indigo-600 outline-none">
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-slate-50 p-4 rounded-2xl">
+                    <p class="text-xs font-bold text-slate-400">เงินต้น</p>
+                    <p id="baseDisp" class="text-lg font-bold">0.00</p>
+                </div>
+                <div class="bg-green-50 p-4 rounded-2xl">
+                    <p class="text-xs font-bold text-green-400">VAT 7%</p>
+                    <p id="vatDisp" class="text-lg font-bold text-green-600">0.00</p>
+                </div>
+            </div>
+            
+            <button onclick="saveData()" class="w-full bg-slate-900 text-white p-4 rounded-2xl font-bold text-lg hover:bg-slate-800 transition shadow-lg">💾 บันทึกข้อมูลเข้าระบบ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let base64Img = "";
+    
+    function calcVAT() {
+      let total = parseFloat(document.getElementById('total').value) || 0;
+      let base = (total * 100) / 107;
+      let vat = total - base;
+      document.getElementById('baseDisp').innerText = base.toLocaleString(undefined,{minimumFractionDigits:2});
+      document.getElementById('vatDisp').innerText = vat.toLocaleString(undefined,{minimumFractionDigits:2});
+    }
+
+    function matchVendor(val) {
+      if(val.length < 13) return;
+      google.script.run.withSuccessHandler(res => {
+        if(res.status === 'found') document.getElementById('vendor').value = res.name;
+        else alert("ไม่พบข้อมูลคู่ค้าในฐานข้อมูล");
+      }).getVendor(val);
+    }
+
+    function saveData() {
+      const session = JSON.parse(localStorage.getItem('pp_auto_session'));
+      const payload = {
+        taxNo: document.getElementById('taxNo').value,
+        taxID: document.getElementById('taxID').value,
+        vendor: document.getElementById('vendor').value,
+        total: document.getElementById('total').value,
+        base: document.getElementById('baseDisp').innerText,
+        vat: document.getElementById('vatDisp').innerText,
+        date: new Date().toLocaleDateString(),
+        user: session.name
+      };
+      
+      google.script.run.withSuccessHandler(res => {
+        if(res.status === 'success') alert("✅ บันทึกสำเร็จ!");
+        else if(res.status === 'duplicate') alert("⚠️ เลขบิลนี้ซ้ำ!");
+      }).savePurchase(payload, base64Img);
+    }
+  </script>
+</body>
+</html>
