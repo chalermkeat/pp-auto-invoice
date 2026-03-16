@@ -4,89 +4,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - PP AUTO ERP</title>
+    <title>Intelligence Dashboard - PP AUTO ERP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Sarabun', sans-serif; font-size: 13px; color: #333; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { font-family: 'Sarabun', sans-serif; background-color: #f0f4f8; color: #1e293b; margin: 0; }
+        .glass-card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.5); }
+        .bento-shadow { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02); }
+        .stat-card:hover { transform: translateY(-5px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .gradient-text { background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen pb-20">
+<body class="min-h-screen">
 
-    <div class="no-print bg-white shadow-md border-b-4 border-orange-500 sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto flex items-center">
-            <div class="px-6 py-4 font-bold text-xl text-slate-800 border-r bg-slate-50 flex items-center gap-2">
-                ⚙️ PP AUTO ERP
-            </div>
-            <div class="flex flex-1 overflow-x-auto no-scrollbar">
-                <? menuConfig.forEach(function(item) { ?>
-                    <a href="<?= item.url ?>" 
-                       target="_top" 
-                       class="px-4 py-4 font-bold flex-1 text-center transition-all whitespace-nowrap
-                       <?= item.isActive ? 'bg-orange-600 text-white shadow-inner' : 'hover:bg-slate-100 text-slate-600' ?>">
-                       <?= item.label ?>
-                    </a>
-                <? }); ?>
-            </div>
-        </div>
-    </div>
+    <?!= include('navbar', menuConfig); ?>
 
-    <div class="max-w-7xl mx-auto p-6 mt-6">
-        <div class="flex justify-between items-center mb-8">
+    <main class="max-w-7xl mx-auto p-6 lg:p-10">
+        
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
             <div>
-                <h2 class="text-3xl font-black text-slate-800 tracking-tight">📊 Sales Dashboard</h2>
-                <p class="text-slate-500 font-medium italic">ภาพรวมยอดขายและสถิติการเติบโตของธุรกิจ</p>
+                <h2 class="text-4xl font-extrabold tracking-tighter text-slate-900 mb-2">
+                    Executive <span class="gradient-text">Overview</span>
+                </h2>
+                <div class="flex items-center gap-2 text-slate-500 font-medium">
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    Live System Status • <span id="lastUpdate">กำลังโหลด...</span>
+                </div>
             </div>
-            <button onclick="loadDashboardData()" class="bg-indigo-600 text-white px-6 py-2 rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition flex items-center gap-2">
-                <span id="refreshIcon">🔄</span> รีเฟรชข้อมูล
+            <button onclick="loadDashboardData()" class="group relative bg-slate-900 text-white px-8 py-3 rounded-2xl font-bold shadow-2xl hover:bg-indigo-600 transition-all duration-300 flex items-center gap-3 active:scale-95">
+                <span id="refreshIcon" class="group-hover:rotate-180 transition-transform duration-500">🔄</span> 
+                รีเฟรชข้อมูลล่าสุด
             </button>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border-l-8 border-blue-500 transition-transform hover:scale-[1.02]">
-                <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">ยอดขายเดือนนี้ (Net)</p>
-                <h3 class="text-4xl font-black text-slate-800 mt-2" id="thisMonthTotal">฿0.00</h3>
-                <p class="text-[10px] mt-2 text-blue-500 font-bold" id="billCountText">พบ 0 ใบกำกับภาษี</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+            <div class="glass-card stat-card p-8 rounded-[2.5rem] bento-shadow flex flex-col justify-between overflow-hidden relative">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-16 -mt-16 opacity-50"></div>
+                <div>
+                    <p class="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mb-1">Monthly Revenue</p>
+                    <h3 class="text-4xl font-black text-slate-800" id="thisMonthTotal">฿0.00</h3>
+                </div>
+                <div class="mt-6 flex items-center gap-2 text-indigo-600 font-bold text-xs bg-indigo-50 w-fit px-3 py-1 rounded-full">
+                    <span>⚡ Current Month</span>
+                </div>
             </div>
-            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border-l-8 border-green-500 transition-transform hover:scale-[1.02]">
-                <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">ยอดขายเฉลี่ยต่อบิล</p>
-                <h3 class="text-4xl font-black text-slate-800 mt-2" id="avgSales">฿0.00</h3>
-                <p class="text-[10px] mt-2 text-green-500 font-bold">จากยอดขายเดือนปัจจุบัน</p>
+
+            <div class="glass-card stat-card p-8 rounded-[2.5rem] bento-shadow flex flex-col justify-between overflow-hidden relative border-b-4 border-emerald-500">
+                <div>
+                    <p class="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mb-1">Avg. Per Ticket</p>
+                    <h3 class="text-4xl font-black text-slate-800" id="avgSales">฿0.00</h3>
+                </div>
+                <div class="mt-6 flex items-center gap-2 text-emerald-600 font-bold text-xs bg-emerald-50 w-fit px-3 py-1 rounded-full">
+                    <span>📈 Efficiency Rate</span>
+                </div>
             </div>
-            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border-l-8 border-orange-500 transition-transform hover:scale-[1.02]">
-                <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">ยอดขายสะสมทั้งหมด</p>
-                <h3 class="text-4xl font-black text-slate-800 mt-2" id="allTimeTotal">฿0.00</h3>
-                <p class="text-[10px] mt-2 text-orange-500 font-bold">รวบรวมตั้งแต่เริ่มใช้ระบบ</p>
+
+            <div class="bg-slate-900 stat-card p-8 rounded-[2.5rem] shadow-2xl flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute bottom-0 right-0 w-40 h-40 bg-white/5 rounded-full -mb-20 -mr-20"></div>
+                <div>
+                    <p class="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mb-1">Total Accumulated</p>
+                    <h3 class="text-4xl font-black text-white" id="allTimeTotal">฿0.00</h3>
+                </div>
+                <div class="mt-6 flex items-center gap-2 text-orange-400 font-bold text-xs bg-white/10 w-fit px-3 py-1 rounded-full">
+                    <span>🏆 All Time Sales</span>
+                </div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-                <h3 class="font-bold text-slate-700 mb-6 flex items-center gap-2 text-sm uppercase tracking-wider">
-                    <span class="bg-indigo-100 p-2 rounded-lg text-indigo-600">📊</span> แนวโน้มยอดขายรายเดือน
-                </h3>
-                <canvas id="salesChart" height="180"></canvas>
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <div class="lg:col-span-3 bg-white p-8 lg:p-10 rounded-[3rem] bento-shadow border border-slate-100">
+                <div class="flex justify-between items-center mb-10">
+                    <h3 class="font-bold text-xl text-slate-800 flex items-center gap-3">
+                        <span class="p-2 bg-indigo-50 rounded-xl text-indigo-600 text-sm">📊</span>
+                        Performance Trend
+                    </h3>
+                    <select id="chartPeriod" class="bg-slate-50 border-none text-xs font-bold p-2 rounded-lg outline-none">
+                        <option>6 Months ย้อนหลัง</option>
+                    </select>
+                </div>
+                <div class="h-[350px]">
+                    <canvas id="salesChart"></canvas>
+                </div>
             </div>
-            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-                <h3 class="font-bold text-slate-700 mb-6 flex items-center gap-2 text-sm uppercase tracking-wider">
-                    <span class="bg-emerald-100 p-2 rounded-lg text-emerald-600">📦</span> สัดส่วนสินค้าขายดี (เดือนนี้)
+
+            <div class="lg:col-span-2 bg-white p-8 lg:p-10 rounded-[3rem] bento-shadow border border-slate-100">
+                <h3 class="font-bold text-xl text-slate-800 mb-10 flex items-center gap-3">
+                    <span class="p-2 bg-emerald-50 rounded-xl text-emerald-600 text-sm">📦</span>
+                    Best Sellers
                 </h3>
-                <div class="relative h-[250px] flex justify-center">
+                <div class="h-[350px] flex items-center justify-center">
                     <canvas id="productQtyChart"></canvas>
                 </div>
             </div>
         </div>
-    </div>
-
-    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] transform translate-y-20 opacity-0 transition-all duration-500 pointer-events-none">
-        <div class="bg-slate-800 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/10">
-            <div id="toast-icon">🚀</div>
-            <p id="toast-msg" class="font-bold text-sm"></p>
-        </div>
-    </div>
+    </main>
 
     <script>
         let charts = {};
@@ -98,118 +115,146 @@
         function loadDashboardData() {
             const btn = document.getElementById('refreshIcon');
             btn.classList.add('animate-spin');
-            showToast("⏳ กำลังประมวลผลข้อมูลจากระบบ...");
+            
+            // เพิ่มการอัปเดตเวลาล่าสุด
+            document.getElementById('lastUpdate').innerText = "กำลังซิงค์ข้อมูล...";
 
             google.script.run.withSuccessHandler(history => {
                 btn.classList.remove('animate-spin');
-                if (history && history.length > 0) {
-                    processDashboardData(history);
-                    showToast("✅ อัปเดตข้อมูลสำเร็จ");
-                } else {
-                    showToast("⚠️ ไม่พบข้อมูลในระบบ", "error");
-                }
+                document.getElementById('lastUpdate').innerText = "อัปเดตเมื่อ: " + new Date().toLocaleTimeString('th-TH');
+                if (history) processData(history);
             }).getDashboardData(); 
         }
 
-        function processDashboardData(history) {
-            let allTimeTotal = 0, thisMonthTotal = 0, thisMonthCount = 0;
-            const monthlyRevenue = {}, monthlyProductQty = {};
-            const now = new Date(), currentMonth = now.getMonth(), currentYear = now.getFullYear();
+        function processData(history) {
+            let allTime = 0, thisMonth = 0, count = 0;
+            const rev = {}, qty = {};
+            const now = new Date(), curM = now.getMonth(), curY = now.getFullYear();
 
             history.forEach(inv => {
                 try {
+                    // ✅ บัคที่พบบ่อย: ข้อมูลในช่อง rawData ว่าง
+                    if (!inv.rawData) return; 
+
                     const data = JSON.parse(inv.rawData);
                     const d = new Date(data.date);
-                    const totalVal = parseFloat(data.grandTotal) || 0;
-                    allTimeTotal += totalVal;
-
-                    if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
-                        thisMonthTotal += totalVal;
-                        thisMonthCount++;
-
-                        // เก็บสถิติสินค้าเฉพาะเดือนนี้
+                    const val = parseFloat(data.grandTotal) || 0;
+                    
+                    allTime += val;
+                    
+                    // เช็คยอดเดือนปัจจุบัน
+                    if (d.getMonth() === curM && d.getFullYear() === curY) {
+                        thisMonth += val; 
+                        count++;
                         if (data.items) {
                             data.items.forEach(item => {
                                 const code = item.code || "ไม่ระบุ";
-                                monthlyProductQty[code] = (monthlyProductQty[code] || 0) + (parseFloat(item.qty) || 0);
+                                qty[code] = (qty[code] || 0) + (parseFloat(item.qty) || 0);
                             });
                         }
                     }
 
-                    // เก็บยอดขายรายเดือน (6 เดือนย้อนหลัง)
+                    // จัดกลุ่มรายเดือน
                     const monthKey = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0');
-                    monthlyRevenue[monthKey] = (monthlyRevenue[monthKey] || 0) + totalVal;
-                } catch (e) { console.error("Data Parse Error", e); }
+                    rev[monthKey] = (rev[monthKey] || 0) + val;
+                } catch (e) {
+                    console.error("Error processing row:", e);
+                }
             });
 
-            // อัปเดตตัวเลขบนการ์ด
-            document.getElementById('allTimeTotal').innerText = "฿" + allTimeTotal.toLocaleString(undefined, {minimumFractionDigits: 2});
-            document.getElementById('thisMonthTotal').innerText = "฿" + thisMonthTotal.toLocaleString(undefined, {minimumFractionDigits: 2});
-            document.getElementById('billCountText').innerText = `พบ ${thisMonthCount} ใบกำกับภาษี`;
-            
-            const avg = thisMonthCount > 0 ? thisMonthTotal / thisMonthCount : 0;
-            document.getElementById('avgSales').innerText = "฿" + avg.toLocaleString(undefined, {minimumFractionDigits: 2});
+            // ✅ Animated Numbers
+            animateNumber('allTimeTotal', allTime);
+            animateNumber('thisMonthTotal', thisMonth);
+            animateNumber('avgSales', count > 0 ? (thisMonth / count) : 0);
 
-            renderSalesCharts(monthlyRevenue, monthlyProductQty);
+            renderCharts(rev, qty);
         }
 
-        function renderSalesCharts(revData, qtyData) {
-            // เตรียม Label เดือนไทย
-            const sortedMonths = Object.keys(revData).sort().slice(-6);
-            const thaiMonths = sortedMonths.map(m => {
+        function animateNumber(id, finalValue) {
+            const el = document.getElementById(id);
+            let start = 0;
+            const duration = 1000;
+            const step = (finalValue / duration) * 10;
+            
+            const timer = setInterval(() => {
+                start += step;
+                el.innerText = "฿" + Math.floor(start).toLocaleString();
+                if (start >= finalValue) {
+                    clearInterval(timer);
+                    el.innerText = "฿" + finalValue.toLocaleString(undefined, {minimumFractionDigits: 2});
+                }
+            }, 10);
+        }
+
+        function renderCharts(rev, qty) {
+            // Setup Chart Defaults for 2026
+            Chart.defaults.font.family = 'Sarabun';
+            Chart.defaults.color = '#94a3b8';
+
+            const months = Object.keys(rev).sort().slice(-6);
+            const labels = months.map(m => {
                 const p = m.split('-');
-                return ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."][p[1]-1] + " " + (parseInt(p[0])+543).toString().substr(2);
+                return ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."][p[1]-1];
             });
 
-            // 1. Line Chart: เทรนด์ยอดขาย
+            // 1. Line Chart Styling
             if (charts.sales) charts.sales.destroy();
-            charts.sales = new Chart(document.getElementById('salesChart'), {
+            const ctx1 = document.getElementById('salesChart').getContext('2d');
+            const gradient = ctx1.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(79, 70, 229, 0.4)');
+            gradient.addColorStop(1, 'rgba(79, 70, 229, 0)');
+
+            charts.sales = new Chart(ctx1, {
                 type: 'line',
                 data: {
-                    labels: thaiMonths,
+                    labels: labels,
                     datasets: [{
-                        label: 'ยอดเงินรวม',
-                        data: sortedMonths.map(m => revData[m]),
+                        label: 'ยอดขายรายเดือน',
+                        data: months.map(m => rev[m]),
                         borderColor: '#4f46e5',
-                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                        fill: true,
+                        borderWidth: 4,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#4f46e5',
+                        pointHoverRadius: 8,
                         tension: 0.4,
-                        borderWidth: 3,
-                        pointRadius: 4
+                        fill: true,
+                        backgroundColor: gradient
                     }]
                 },
-                options: { responsive: true, plugins: { legend: { display: false } } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { grid: { display: false }, border: { display: false } },
+                        x: { grid: { display: false }, border: { display: false } }
+                    }
+                }
             });
 
-            // 2. Doughnut Chart: สินค้าขายดี
-            const top5Codes = Object.keys(qtyData).sort((a,b) => qtyData[b] - qtyData[a]).slice(0, 5);
+            // 2. Doughnut Chart Styling
+            const top5Keys = Object.keys(qty).sort((a,b) => qty[b] - qty[a]).slice(0, 5);
             if (charts.qty) charts.qty.destroy();
             charts.qty = new Chart(document.getElementById('productQtyChart'), {
                 type: 'doughnut',
                 data: {
-                    labels: top5Codes,
+                    labels: top5Keys,
                     datasets: [{
-                        data: top5Codes.map(c => qtyData[c]),
+                        data: top5Keys.map(c => qty[c]),
                         backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
-                        hoverOffset: 15
+                        borderWidth: 0,
+                        hoverOffset: 20
                     }]
                 },
-                options: { 
-                    responsive: true, 
+                options: {
+                    responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } } 
+                    cutout: '75%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } }
+                    }
                 }
             });
-        }
-
-        function showToast(msg, type = 'success') {
-            const t = document.getElementById('toast');
-            const msgEl = document.getElementById('toast-msg');
-            msgEl.innerText = msg;
-            document.getElementById('toast-icon').innerText = type === 'success' ? '✅' : '⚠️';
-            t.classList.remove('translate-y-20', 'opacity-0');
-            t.classList.add('translate-y-0', 'opacity-100');
-            setTimeout(() => { t.classList.remove('translate-y-0', 'opacity-100'); t.classList.add('translate-y-20', 'opacity-0'); }, 3000);
         }
     </script>
 </body>
