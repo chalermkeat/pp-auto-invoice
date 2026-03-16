@@ -66,6 +66,10 @@ function getSalesTaxReportData() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var salesTaxSheet = ss.getSheetByName("Sales_Tax");
   var invoiceSheet = ss.getSheetByName("Invoice");
+  
+  // 🚀 ดึงข้อมูลโปรไฟล์บริษัทเจ้าของ (เรียกใช้ฟังก์ชัน getCompanyProfile ที่เราทำไว้)
+  var company = getCompanyProfile(); 
+  
   var history = [];
   var stats = { total: 0, vat: 0 };
 
@@ -73,59 +77,104 @@ function getSalesTaxReportData() {
   if (salesTaxSheet) {
     var data = salesTaxSheet.getDataRange().getValues();
     for (var i = 1; i < data.length; i++) {
+      if (!data[i][2]) continue; // ข้ามถ้าไม่มีเลขที่บิล
+      
       var total = parseFloat(data[i][8]) || 0;
       var vat = parseFloat(data[i][7]) || 0;
-      stats.total += total; stats.vat += vat;
+      stats.total += total; 
+      stats.vat += vat;
+      
       history.push({
-        date: data[i][1] instanceof Date ? Utilities.formatDate(data[i][1], "GMT+7", "dd/MM/yyyy") : data[i][1],
-        taxNo: data[i][2], customer: data[i][3], total: total, vat: vat, source: "Manual"
+        date: data[i][1] instanceof Date ? Utilities.formatDate(data[i][1], "GMT+7", "dd/MM/yyyy") : (data[i][1] || "-"),
+        taxNo: data[i][2], 
+        customer: data[i][3], 
+        taxID: data[i][4] ? data[i][4].toString().replace(/'/g, "").trim() : "-", // เลขผู้เสียภาษีลูกค้า
+        branch: data[i][5] ? data[i][5].toString().replace(/'/g, "").trim() : "00000", // สาขาลูกค้า
+        total: total, 
+        vat: vat, 
+        source: "Manual"
       });
     }
   }
 
-  // 2. ดึงจากหน้าออกใบกำกับภาษี (Autoดึงจาก Invoice Sheet)
+  // 2. ดึงจากหน้าออกใบกำกับภาษี (Auto ดึงจาก Invoice Sheet)
   if (invoiceSheet) {
     var invData = invoiceSheet.getDataRange().getValues();
     for (var i = 1; i < invData.length; i++) {
+      if (!invData[i][1]) continue; // ข้ามถ้าไม่มีเลขที่บิล
+      
       var total = parseFloat(invData[i][3]) || 0;
-      var vat = total - (total * 100 / 107); // คำนวณ VAT 7%
-      stats.total += total; stats.vat += vat;
+      var base = (total * 100 / 107);
+      var vat = total - base;
+      stats.total += total; 
+      stats.vat += vat;
+      
+      // ดึงข้อมูล TaxID และ Branch จาก JSON ในคอลัมน์ F (Index 5)
+      var raw = {};
+      try { 
+        raw = JSON.parse(invData[i][5] || "{}"); 
+      } catch(e) {
+        console.log("Error parsing JSON at row " + (i+1));
+      }
+
       history.push({
-        date: invData[i][0] instanceof Date ? Utilities.formatDate(invData[i][0], "GMT+7", "dd/MM/yyyy") : invData[i][0],
-        taxNo: invData[i][1], customer: invData[i][2], total: total, vat: vat, source: "System"
+        date: invData[i][0] instanceof Date ? Utilities.formatDate(invData[i][0], "GMT+7", "dd/MM/yyyy") : (invData[i][0] || "-"),
+        taxNo: invData[i][1], 
+        customer: invData[i][2], 
+        taxID: raw.taxID ? raw.taxID.toString().replace(/'/g, "").trim() : "-",
+        branch: raw.branch ? raw.branch.toString().replace(/'/g, "").trim() : "00000",
+        total: total, 
+        vat: vat, 
+        source: "System"
       });
     }
   }
-  return { stats: stats, history: history.reverse() };
+
+  // 🚀 ส่งกลับทั้งสถิติ, ประวัติ และข้อมูลบริษัทเจ้าของ
+  return { 
+    stats: stats, 
+    history: history.reverse(), 
+    company: company 
+  };
 }
 
 // --- 3. Purchase Tax System (ระบบภาษีซื้อ) ---
 
+// --- แก้ไขใน Code.gs ตรงส่วน savePurchase ---
+
 function savePurchase(payload, base64Image) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName("Purchase_Tax") || ss.insertSheet("Purchase_Tax");
-  var data = sheet.getDataRange().getValues();
-  var targetRow = -1;
-
-  if (payload.oldTaxNo) {
-    for (var i = 1; i < data.length; i++) {
-      if (data[i][2] == payload.oldTaxNo) { targetRow = i + 1; break; }
-    }
-  }
-
-  if (!payload.oldTaxNo || (payload.oldTaxNo && payload.oldTaxNo !== payload.taxNo)) {
-    if (checkDuplicateTaxNo(payload.taxNo)) return { status: "duplicate" };
-  }
+  
+  // 🚀 ซ่อมจุดนี้: เช็กก่อนว่ามีสาขาไหม ถ้าไม่มีให้ใส่ 00000 และเติม ' เพื่อให้เป็นข้อความ
+  var branchText = "'" + (payload.branch || "00000"); 
 
   try {
+    var targetRow = -1;
+    var data = sheet.getDataRange().getValues();
+    if (payload.oldTaxNo) {
+      for (var i = 1; i < data.length; i++) {
+        if (data[i][2] == payload.oldTaxNo) { targetRow = i + 1; break; }
+      }
+    }
+
     if (targetRow != -1) {
-      sheet.getRange(targetRow, 2, 1, 8).setValues([[payload.date, payload.taxNo, payload.vendor, payload.taxID, payload.branch, payload.base, payload.vat, payload.total]]);
+      sheet.getRange(targetRow, 2, 1, 8).setValues([[
+        payload.date, payload.taxNo, payload.vendor, payload.taxID, 
+        branchText, payload.base, payload.vat, payload.total
+      ]]);
       sheet.getRange(targetRow, 12).setValue(payload.paymentStatus);
     } else {
-      sheet.appendRow([new Date(), payload.date, payload.taxNo, payload.vendor, payload.taxID, payload.branch, payload.base, payload.vat, payload.total, "", payload.user, payload.paymentStatus]);
+      sheet.appendRow([
+        new Date(), payload.date, payload.taxNo, payload.vendor, payload.taxID,
+        branchText, payload.base, payload.vat, payload.total, "",
+        payload.user, payload.paymentStatus
+      ]);
     }
     return { status: "success" };
-  } catch (e) { return { status: "error", message: e.message }; }
+  } catch (e) {
+    return { status: "error", message: e.message };
+  }
 }
 
 // --- 4. VAT Matching & Reporting (สรุปภาษี ภ.พ.30) ---
@@ -248,6 +297,8 @@ function getPurchaseReportData() {
         date: dateStr,
         taxNo: data[i][2],
         vendor: data[i][3],
+        taxID: data[i][4],    // 🚀 เพิ่มบรรทัดนี้: ดึงคอลัมน์ E (Index 4)
+        branch: data[i][5],   // 🚀 เพิ่มบรรทัดนี้: ดึงคอลัมน์ F (Index 5)
         total: total,
         vat: vat,
         status: status,
@@ -278,4 +329,220 @@ function getDashboardData() {
     }
   }
   return results;
+}
+
+// ฟังก์ชันค้นหาข้อมูลบิลซื้อตามเลขที่ (สำหรับโหมดแก้ไข)
+function getPurchaseByTaxNo(taxNo) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Purchase_Tax");
+  if (!sheet) return { status: "error", message: "ไม่พบชีท Purchase_Tax" };
+  
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    // เทียบเลขที่บิล (คอลัมน์ C)
+    if (data[i][2].toString().trim() === taxNo.toString().trim()) {
+      return {
+        status: "success",
+        data: {
+          date: data[i][1] instanceof Date ? Utilities.formatDate(data[i][1], "GMT+7", "yyyy-MM-dd") : data[i][1],
+          taxNo: data[i][2],
+          vendor: data[i][3],
+          taxID: data[i][4],
+          branch: data[i][5].toString().replace(/'/g, ""), // ลบเครื่องหมาย ' ออกก่อนแสดงผล
+          total: data[i][8],
+          paymentStatus: data[i][11]
+        }
+      };
+    }
+  }
+  return { status: "error", message: "ไม่พบข้อมูลบิลเลขที่ " + taxNo };
+}
+
+// 🚀 ฟังก์ชันเทพ: ดึงข้อมูลชื่อบริษัทจากเลขผู้เสียภาษี (นิติบุคคลใหม่)
+function fetchCompanyFromCreden(taxID) {
+  if (!taxID || taxID.length !== 13) return { status: "error", message: "เลขไม่ครบ 13 หลัก" };
+  
+  // ท่อทางเลือก 1: ดึงจากฐานข้อมูลสาธารณะ (ผ่าน Creden Data API หรือคล้ายคลึง)
+  var url = "https://data.creden.co/api/v1/company/" + taxID; 
+  
+  try {
+    var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    var resCode = response.getResponseCode();
+    
+    if (resCode === 200) {
+      var json = JSON.parse(response.getContentText());
+      // ปรับตามโครงสร้าง JSON ของผู้ให้บริการ
+      var companyName = json.name_th || json.company_name || ""; 
+      if (companyName) {
+        return { status: "success", name: companyName };
+      }
+    }
+    
+    // ท่อทางเลือก 2: ถ้า API แรกไม่ตอบสนอง หรือหาไม่เจอ
+    // ระบบจะพยายามค้นหาจากประวัติใน Invoice เดิม (เผื่อเคยออกบิลขายให้เขา)
+    var invoiceSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Invoice");
+    if (invoiceSheet) {
+      var invData = invoiceSheet.getDataRange().getValues();
+      for (var i = 1; i < invData.length; i++) {
+        var raw = JSON.parse(invData[i][5] || "{}");
+        if (raw.taxID === taxID) return { status: "success", name: raw.custName || "" };
+      }
+    }
+
+    return { status: "not_found", message: "ไม่พบข้อมูลในฐานข้อมูลกลาง" };
+  } catch (e) {
+    return { status: "error", message: e.message };
+  }
+}
+
+// 🚀 ฟังก์ชันลบรายการภาษีซื้อจากเลขที่ใบกำกับภาษี
+function deletePurchase(taxNo) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Purchase_Tax");
+  if (!sheet) return { status: "error", message: "ไม่พบชีทข้อมูล" };
+  
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][2].toString().trim() === taxNo.toString().trim()) {
+      sheet.deleteRow(i + 1); // ลบแถวที่เจอ (+1 เพราะ Array เริ่มที่ 0)
+      return { status: "success", message: "ลบข้อมูลเรียบร้อยแล้ว" };
+    }
+  }
+  return { status: "error", message: "ไม่พบเลขที่บิลที่ต้องการลบ" };
+}
+
+// 1. ฟังก์ชันดึงข้อมูลโปรไฟล์บริษัทเจ้าของ (จากชีท Company_Profile)
+function getCompanyProfile() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Company_Profile");
+    if (!sheet) return null;
+    
+    // ดึงข้อมูลแถวที่ 2 (คอลัมน์ A, B, C, D)
+    var data = sheet.getRange(2, 1, 1, 4).getValues()[0];
+    
+    return {
+      name: data[0] || "",       // คอลัมน์ A: ชื่อผู้ประกอบการ
+      storeName: data[1] || "",  // คอลัมน์ B: ชื่อสถานประกอบการ
+      taxID: data[2] ? data[2].toString().replace(/'/g, "").trim() : "", // คอลัมน์ C: เลขประจำตัวผู้เสียภาษี
+      branch: data[3] !== "" ? data[3].toString().replace(/'/g, "").trim() : "00000" // คอลัมน์ D: รหัสสาขา
+    };
+  } catch (e) {
+    console.log("Error getting company profile: " + e.message);
+    return null;
+  }
+}
+
+// 2. ฟังก์ชันหลักสำหรับดึงข้อมูลรายงานภาษีซื้อ
+function getPurchaseReportData() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Purchase_Tax");
+  
+  // ดึงข้อมูลบริษัทเจ้าของมาก่อน
+  var company = getCompanyProfile();
+  
+  // ถ้าไม่มีชีทภาษีซื้อ ให้ส่งค่าว่างและข้อมูลบริษัทกลับไป
+  if (!sheet) return { stats: { total: 0, vat: 0, unpaid: 0 }, history: [], company: company };
+  
+  var data = sheet.getDataRange().getValues();
+  var stats = { total: 0, vat: 0, unpaid: 0 };
+  var history = [];
+
+  // เริ่มวนลูปจากแถวที่ 2 (i=1)
+  for (var i = 1; i < data.length; i++) {
+    try {
+      // ตรวจสอบว่ามีเลขที่บิลหรือไม่ (คอลัมน์ C)
+      if (!data[i][2]) continue; 
+
+      var total = parseFloat(data[i][8]) || 0; // คอลัมน์ I: ยอดรวม
+      var vat = parseFloat(data[i][7]) || 0;   // คอลัมน์ H: VAT
+      var status = data[i][11] || "ยังไม่ชำระ"; // คอลัมน์ L: สถานะ
+      
+      stats.total += total;
+      stats.vat += vat;
+      if (status.includes("ยังไม่ชำระ") || status.includes("ยังไม่จ่าย")) {
+        stats.unpaid += total;
+      }
+
+      // จัดการรูปแบบวันที่
+      var dateStr = "";
+      if (data[i][1] instanceof Date) { // คอลัมน์ B: วันที่
+        dateStr = Utilities.formatDate(data[i][1], "GMT+7", "dd/MM/yyyy");
+      } else {
+        dateStr = data[i][1] ? data[i][1].toString() : "-";
+      }
+
+      // รวบรวมข้อมูลรายการ
+      history.unshift({
+        date: dateStr,
+        taxNo: data[i][2], // คอลัมน์ C
+        vendor: data[i][3], // คอลัมน์ D
+        taxID: data[i][4] ? data[i][4].toString().replace(/'/g, "").trim() : "-", // คอลัมน์ E
+        branch: data[i][5] ? data[i][5].toString().replace(/'/g, "").trim() : "", // คอลัมน์ F
+        total: total,
+        vat: vat,
+        status: status,
+        img: data[i][9] // คอลัมน์ J
+      });
+    } catch(err) {
+      console.log("Error at row " + (i+1) + ": " + err.message);
+    }
+  }
+  
+  // ส่งข้อมูลทั้งหมดกลับไปที่หน้า HTML
+  return { 
+    stats: stats, 
+    history: history, 
+    company: company 
+  };
+}
+
+// สคริปต์สำหรับรันครั้งเดียว เพื่อดึง Tax ID จาก JSON (คอลัมน์ F) ไปใส่คอลัมน์ G
+function extractTaxIdToColumnG() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Invoice");
+  if (!sheet) return;
+  
+  var data = sheet.getDataRange().getValues();
+  
+  // วนลูปตั้งแต่แถวที่ 2 เป็นต้นไป
+  for (var i = 1; i < data.length; i++) {
+    var jsonString = data[i][5]; // คอลัมน์ F (Index 5)
+    var currentTaxId = data[i][6]; // คอลัมน์ G (Index 6)
+    
+    // ถ้ามี JSON และคอลัมน์ G ยังว่างเปล่า
+    if (jsonString && !currentTaxId) {
+      try {
+        var parsedData = JSON.parse(jsonString);
+        if (parsedData.taxID && parsedData.taxID !== "-") {
+          // นำ taxID ไปหยอดลงคอลัมน์ G (แถวที่ i+1, คอลัมน์ 7)
+          sheet.getRange(i + 1, 7).setValue("'" + parsedData.taxID);
+        }
+      } catch (e) {
+        console.log("Error parsing JSON in row " + (i + 1));
+      }
+    }
+  }
+}
+
+// ฟังก์ชันสำหรับลบข้อมูลบิลภาษีซื้อใน Code.gs
+function deletePurchaseRecord(taxNo) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Purchase_Tax"); // เช็คชื่อชีทให้ตรงกับของคุณเบิ้มด้วยนะครับ
+    if (!sheet) return {status: 'error', message: 'ไม่พบฐานข้อมูลภาษีซื้อ'};
+    
+    var data = sheet.getDataRange().getValues();
+    
+    // วนลูปหาเลขที่บิลที่ตรงกัน (สมมติว่าเลขที่บิลอยู่คอลัมน์ B หรือ Index 1)
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][1] == taxNo || data[i][2] == taxNo) { 
+        sheet.deleteRow(i + 1); // ลบแถวทิ้ง
+        return {status: 'success'};
+      }
+    }
+    return {status: 'error', message: 'ไม่พบเลขที่บิลนี้ในระบบ'};
+  } catch(e) {
+    return {status: 'error', message: e.toString()};
+  }
 }
