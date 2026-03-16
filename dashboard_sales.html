@@ -1,4 +1,25 @@
 <?!= include('auth_script'); ?>
+<? 
+    // 🚀 ดึงข้อมูลจากแถวที่ 2 ตรงๆ ตามตารางแนวนอนของคุณเบิ้ม (A2:F2)
+    var compInfo = { name: "-", store: "-", address: "-", phone: "-", taxId: "-", branch: "00000" };
+    try {
+        var ss = SpreadsheetApp.getActiveSpreadsheet();
+        var sheet = ss.getSheetByName("Company_Profile");
+        if (sheet) {
+            var v = sheet.getRange("A2:F2").getDisplayValues()[0];
+            if (v) {
+                compInfo = {
+                    name: v[0] || "-",     // คอลัมน์ A: ชื่อผู้ประกอบการ
+                    store: v[1] || "-",    // คอลัมน์ B: ชื่อสถานประกอบการ
+                    address: v[2] || "-",  // คอลัมน์ C: ที่อยู่
+                    phone: v[3] || "-",    // คอลัมน์ D: เบอร์โทรศัพท์
+                    taxId: v[4] || "-",    // คอลัมน์ E: เลขประจำตัวผู้เสียภาษี
+                    branch: v[5] || "00000" // คอลัมน์ F: รหัสสาขา
+                };
+            }
+        }
+    } catch(e) {}
+?>
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -14,116 +35,195 @@
         .stat-card:hover { transform: translateY(-5px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .gradient-text-indigo { background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-
-        /* Source Badges */
+        /* 🖨️ ระบบการพิมพ์ A4 แนวตั้ง */
+        @media print {
+            .no-print { display: none !important; }
+            @page { size: A4 portrait; margin: 0; }
+            body { background-color: white !important; margin: 0 !important; padding: 10mm 10mm !important; }
+            .print-area { display: block !important; width: 100%; }
+            .data-table th, .data-table td { border: 1px solid black !important; padding: 2px 4px !important; height: 32px; vertical-align: middle !important; color: black !important; font-size: 9px !important; }
+            .blue-line { border-bottom: 1.5px solid #2563eb !important; }
+        }
+        
+        .print-area { display: none; color: black; }
+        .report-title { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+        .data-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .data-table th { background-color: #f2f2f2; font-weight: bold; text-align: center; font-size: 9px; border: 1px solid black; }
+        .header-layout { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
+        .header-layout td { font-size: 11px; padding: 2px 0; vertical-align: bottom; }
+        .blue-line { border-bottom: 1.5px solid #2563eb; display: inline-block; padding: 0 5px; font-weight: 600; }
+        #reportModal { transition: opacity 0.3s ease; }
         .source-system { background-color: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; }
         .source-manual { background-color: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
     </style>
 </head>
 <body class="min-h-screen">
 
-    <?!= include('navbar', menuConfig); ?>
-
-    <main class="max-w-7xl mx-auto p-6 lg:p-10">
-        
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
-            <div>
-                <h2 class="text-4xl font-extrabold tracking-tighter text-slate-900 mb-2">
-                    Sales <span class="gradient-text-indigo">Analytics</span>
-                </h2>
-                <div class="flex items-center gap-2 text-slate-500 font-medium">
-                    <span class="p-1 bg-indigo-100 rounded text-indigo-600 text-[10px] font-bold uppercase tracking-widest px-2">Output VAT System</span>
-                    <span id="lastUpdate">กำลังซิงค์ข้อมูล...</span>
-                </div>
-            </div>
-            <div class="flex gap-3">
-                <button onclick="window.top.location.href='<?= ScriptApp.getService().getUrl(); ?>?page=index'" class="bg-white border-2 border-slate-200 text-slate-700 px-6 py-3 rounded-2xl font-bold hover:bg-slate-50 transition flex items-center gap-2">
-                    📝 ออกใบกำกับภาษี
-                </button>
-                <button onclick="loadSalesData()" class="bg-slate-900 text-white px-8 py-3 rounded-2xl font-bold shadow-2xl hover:bg-indigo-600 transition-all duration-300 flex items-center gap-3">
-                    <span id="refreshIcon">🔄</span> รีเฟรชข้อมูล
-                </button>
-            </div>
-        </div>
-        
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-            <div class="glass-card stat-card p-8 rounded-[2.5rem] bento-shadow flex flex-col justify-between overflow-hidden relative border-b-4 border-indigo-500">
-                <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-16 -mt-16 opacity-50"></div>
+    <div class="no-print">
+        <?!= include('navbar', menuConfig); ?>
+        <main class="max-w-7xl mx-auto p-6 lg:p-10">
+            
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
                 <div>
-                    <p class="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mb-1">Total Sales Taxable</p>
-                    <h3 class="text-4xl font-black text-slate-800" id="totalSales">฿0.00</h3>
+                    <h2 class="text-4xl font-extrabold tracking-tighter text-slate-900 mb-2">
+                        Sales <span class="gradient-text-indigo">Analytics</span>
+                    </h2>
+                    <div class="flex items-center gap-3">
+                        <select id="reportMonth" onchange="updateDashboard()" class="bg-white border p-2 rounded-xl font-bold text-sm outline-none cursor-pointer">
+                            <option value="0">มกราคม</option><option value="1">กุมภาพันธ์</option><option value="2">มีนาคม</option>
+                            <option value="3">เมษายน</option><option value="4">พฤษภาคม</option><option value="5">มิถุนายน</option>
+                            <option value="6">กรกฎาคม</option><option value="7">สิงหาคม</option><option value="8">กันยายน</option>
+                            <option value="9">ตุลาคม</option><option value="10">พฤศจิกายน</option><option value="11">ธันวาคม</option>
+                        </select>
+                        <select id="reportYear" onchange="updateDashboard()" class="bg-white border p-2 rounded-xl font-bold text-sm outline-none cursor-pointer"></select>
+                    </div>
                 </div>
-                <div class="mt-6 flex items-center gap-2 text-indigo-600 font-bold text-xs bg-indigo-50 w-fit px-3 py-1 rounded-full">
-                    <span>📊 ฐานภาษีขายรวม</span>
+                <div class="flex gap-3">
+                    <button onclick="showReportPreview()" class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition flex items-center gap-2">📄 ดูรายงานภาษีขาย</button>
+                    <button onclick="loadSalesData()" class="bg-slate-900 text-white px-8 py-3 rounded-2xl font-bold shadow-2xl hover:bg-indigo-600 transition flex items-center gap-3">
+                        <span id="refreshIcon">🔄</span> รีเฟรช
+                    </button>
                 </div>
-            </div>
-
-            <div class="glass-card stat-card p-8 rounded-[2.5rem] bento-shadow flex flex-col justify-between overflow-hidden relative border-b-4 border-cyan-500">
-                <div>
-                    <p class="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mb-1">Output VAT (7%)</p>
-                    <h3 class="text-4xl font-black text-cyan-600" id="totalVat">฿0.00</h3>
-                </div>
-                <div class="mt-6 flex items-center gap-2 text-cyan-600 font-bold text-xs bg-cyan-50 w-fit px-3 py-1 rounded-full">
-                    <span>💡 ภาษีขายที่ต้องนำส่ง</span>
-                </div>
-            </div>
-
-            <div class="bg-slate-900 stat-card p-8 rounded-[2.5rem] shadow-2xl flex flex-col justify-between relative overflow-hidden">
-                <div class="absolute bottom-0 right-0 w-40 h-40 bg-white/5 rounded-full -mb-20 -mr-20"></div>
-                <div>
-                    <p class="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mb-1">Invoice Count</p>
-                    <h3 class="text-4xl font-black text-white" id="recordCount">0 รายการ</h3>
-                </div>
-                <div class="mt-6 flex items-center gap-2 text-indigo-400 font-bold text-xs bg-white/10 w-fit px-3 py-1 rounded-full">
-                    <span>📋 จำนวนบิลในระบบ</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-[3rem] bento-shadow border border-slate-100 overflow-hidden">
-            <div class="p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <h3 class="font-bold text-xl text-slate-800 flex items-center gap-3">
-                    <span class="p-2 bg-indigo-50 rounded-xl text-indigo-600 text-sm">📄</span>
-                    Sales Tax Ledger
-                </h3>
-                <div class="relative w-full md:w-72">
-                    <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="ค้นเลขที่บิล หรือ ชื่อลูกค้า..." class="w-full bg-slate-50 border-none p-3 pl-10 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                    <span class="absolute left-3 top-1/2 -translate-y-1/2 opacity-30">🔍</span>
-                </div>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse" id="salesTable">
-                    <thead>
-                        <tr class="bg-slate-50/50">
-                            <th class="p-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">วันที่บิล</th>
-                            <th class="p-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">เลขที่ใบกำกับ</th>
-                            <th class="p-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">ชื่อลูกค้า</th>
-                            <th class="p-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">ฐานภาษี (Net)</th>
-                            <th class="p-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">ภาษี (VAT)</th>
-                            <th class="p-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">แหล่งที่มา</th>
-                        </tr>
-                    </thead>
-                    <tbody id="salesBody" class="divide-y divide-slate-50">
-                        </tbody>
-                </table>
             </div>
             
-            <div id="loadingState" class="p-20 text-center">
-                <div class="inline-block animate-spin text-4xl mb-4 text-indigo-500">🔄</div>
-                <p class="text-slate-400 font-bold">กำลังรวบรวมรายงานภาษีขายของคุณ...</p>
+            <div id="loadingState" class="p-20 text-center"><div class="animate-spin text-4xl mb-4 text-indigo-500">🔄</div><p class="text-slate-400 font-bold">กำลังซิงค์ข้อมูลภาษีขาย...</p></div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+                <div class="glass-card stat-card p-8 rounded-[2.5rem] bento-shadow border-b-4 border-indigo-500 overflow-hidden relative">
+                    <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">ยอดขายเดือนนี้ (Net)</p>
+                    <h3 class="text-4xl font-black text-slate-800" id="totalSales">฿0.00</h3>
+                </div>
+                <div class="glass-card stat-card p-8 rounded-[2.5rem] bento-shadow border-b-4 border-cyan-500">
+                    <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">ภาษีขาย (VAT 7%)</p>
+                    <h3 class="text-4xl font-black text-cyan-600" id="totalVat">฿0.00</h3>
+                </div>
+                <div class="bg-slate-900 stat-card p-8 rounded-[2.5rem] shadow-2xl">
+                    <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Invoice Count</p>
+                    <h3 class="text-4xl font-black text-white" id="recordCount">0 รายการ</h3>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-[3rem] bento-shadow border border-slate-100 overflow-hidden">
+                <div class="p-8 border-b border-slate-50 flex justify-between items-center">
+                    <h3 class="font-bold text-xl text-slate-800 flex items-center gap-3">📋 Sales Tax Ledger</h3>
+                    <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="ค้นหา..." class="bg-slate-50 border-none p-3 rounded-xl text-sm w-64 outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b">
+                                <th class="p-6">วันที่</th><th class="p-6">เลขที่บิล</th><th class="p-6">ชื่อลูกค้า</th><th class="p-6 text-right">ยอดสุทธิ</th><th class="p-6 text-center">แหล่งที่มา</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salesBody" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="reportModal" class="fixed inset-0 bg-black/70 z-[150] hidden no-print flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-[95%] max-h-[95vh] rounded-[2rem] overflow-hidden flex flex-col shadow-2xl">
+            <div class="p-6 border-b flex justify-between items-center bg-slate-50">
+                <h3 class="text-xl font-bold text-slate-800 italic">Preview: รายงานภาษีขาย (ม.ป.ผ. 1)</h3>
+                <div class="flex gap-2">
+                    <button onclick="window.print()" class="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">🖨️ สั่งพิมพ์รายงาน</button>
+                    <button onclick="closeReportModal()" class="bg-slate-200 text-slate-600 px-6 py-2 rounded-xl font-bold hover:bg-slate-300 transition">ปิด</button>
+                </div>
+            </div>
+            <div class="flex-1 overflow-auto p-4 bg-slate-300">
+                <div id="modalPrintArea" class="bg-white shadow-lg mx-auto w-[210mm] min-h-[297mm]" style="padding: 10mm; box-sizing: border-box;"></div>
             </div>
         </div>
-    </main>
+    </div>
+
+    <div id="printSection" class="print-area">
+        <div class="report-title">รายงานภาษีขาย</div>
+        
+        <table class="header-layout">
+            <tr>
+                <td style="width: 10%;">เดือนภาษี</td>
+                <td style="width: 30%;"><span class="blue-line" id="pMonth" style="min-width: 100px; text-align: center;"></span></td>
+                <td style="width: 5%; text-align: center;">ปี</td>
+                <td style="width: 55%;"><span class="blue-line" id="pYear" style="min-width: 60px; text-align: center;"></span></td>
+            </tr>
+        </table>
+        
+        <table class="header-layout">
+            <tr>
+                <td style="width: 15%;">ชื่อผู้ประกอบการ</td>
+                <td style="width: 45%;"><span class="blue-line" id="ownName" style="min-width: 250px;"></span></td>
+                <td style="width: 18%; text-align: right; padding-right: 10px;">เลขประจำตัวผู้เสียภาษี</td>
+                <td style="width: 22%;"><span class="blue-line" id="ownTaxID" style="min-width: 140px; text-align: center;"></span></td>
+            </tr>
+        </table>
+
+        <table class="header-layout">
+            <tr>
+                <td style="width: 15%;">ชื่อสถานประกอบการ</td>
+                <td style="width: 45%;"><span class="blue-line" id="ownStoreName" style="min-width: 250px;"></span></td>
+                <td style="width: 40%; text-align: right;">
+                    <span id="ownHqCheck" style="font-weight: bold;">[ ]</span> สำนักงานใหญ่ &nbsp;&nbsp;
+                    <span id="ownBrCheck" style="font-weight: bold;">[ ]</span> สาขาที่ <span id="ownBranchNo" style="border-bottom: 1px dotted black; min-width: 60px; display: inline-block; text-align: center;"></span>
+                </td>
+            </tr>
+        </table>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th rowspan="2" style="width: 30px;">ลำดับ</th>
+                    <th colspan="2">ใบกำกับภาษี</th>
+                    <th rowspan="2">ชื่อผู้ซื้อสินค้า / ผู้รับบริการ</th>
+                    <th rowspan="2" style="width: 110px;">เลขประจำตัวผู้เสียภาษีอากร</th>
+                    <th colspan="2" style="width: 65px;">สถานประกอบการ</th>
+                    <th rowspan="2" style="width: 80px;">มูลค่าสินค้า</th>
+                    <th rowspan="2" style="width: 65px;">ภาษีมูลค่าเพิ่ม</th>
+                </tr>
+                <tr>
+                    <th style="width: 55px;">วัน/เดือน/ปี</th>
+                    <th style="width: 85px;">เล่มที่/เลขที่</th>
+                    <th style="width: 30px;">สนญ.</th>
+                    <th style="width: 35px;">สาขา</th>
+                </tr>
+            </thead>
+            <tbody id="printBody"></tbody>
+            <tfoot>
+                <tr style="font-weight: bold; background-color: #eee;">
+                    <td colspan="7" align="center">รวมทั้งสิ้น</td>
+                    <td align="right" id="pTotalBase">0.00</td>
+                    <td align="right" id="pTotalVat">0.00</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
 
     <script>
-        window.onload = function() {
-            loadSalesData();
+        let allData = [];
+        const monthsTH = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+
+        // 🚀 รับข้อมูลที่จัดเรียงแล้วจากฝั่งเซิร์ฟเวอร์
+        let companyInfo = <?!= JSON.stringify(compInfo) ?>;
+
+        window.onload = function() { 
+            const now = new Date();
+            const yearSel = document.getElementById('reportYear');
+            for(let i=-2; i<=1; i++) {
+                let y = now.getFullYear() + i;
+                let opt = document.createElement('option');
+                opt.value = y; opt.innerText = y + 543;
+                if(i === 0) opt.selected = true;
+                yearSel.appendChild(opt);
+            }
+            document.getElementById('reportMonth').value = now.getMonth();
+            loadSalesData(); 
         };
+
+        function parseDate(dateStr) {
+            if (!dateStr || dateStr === "-") return new Date(0);
+            const parts = dateStr.split('/');
+            return parts.length === 3 ? new Date(parts[2], parts[1] - 1, parts[0]) : new Date(dateStr);
+        }
 
         function loadSalesData() {
             const btnIcon = document.getElementById('refreshIcon');
@@ -132,46 +232,111 @@
             google.script.run.withSuccessHandler(res => {
                 btnIcon.classList.remove('animate-spin');
                 document.getElementById('loadingState').classList.add('hidden');
-                document.getElementById('lastUpdate').innerText = "อัปเดตเมื่อ: " + new Date().toLocaleTimeString('th-TH');
-                
-                if (res) {
-                    // Update Stats with Animation
-                    animateNumber('totalSales', res.stats.total - res.stats.vat);
-                    animateNumber('totalVat', res.stats.vat);
-                    document.getElementById('recordCount').innerText = res.history.length + " รายการ";
-                    
-                    renderTable(res.history);
+                if (res) { 
+                    allData = res.history || []; 
+                    updateDashboard(); 
                 }
-            }).getSalesTaxReportData(); 
+            }).getSalesTaxReportData();
         }
 
-        function renderTable(history) {
-            const body = document.getElementById('salesBody');
-            body.innerHTML = "";
+        function updateDashboard() {
+            const m = parseInt(document.getElementById('reportMonth').value);
+            const y = parseInt(document.getElementById('reportYear').value);
+            const filtered = allData.filter(item => {
+                const d = parseDate(item.date);
+                return d.getMonth() === m && d.getFullYear() === y;
+            });
+            let totalVat = 0, totalNet = 0;
+            filtered.forEach(item => { totalNet += (item.total - item.vat); totalVat += item.vat; });
             
-            history.forEach(item => {
+            animateNumber('totalSales', totalNet);
+            animateNumber('totalVat', totalVat);
+            document.getElementById('recordCount').innerText = filtered.length + " รายการ";
+            renderTable(filtered);
+        }
+
+        function renderTable(data) {
+            const body = document.getElementById('salesBody');
+            body.innerHTML = data.length ? "" : '<tr><td colspan="5" class="p-10 text-center">-- ไม่มีข้อมูลภาษีขาย --</td></tr>';
+            data.forEach(item => {
                 const isSystem = item.source === "System";
-                const row = document.createElement('tr');
-                row.className = "hover:bg-slate-50/80 transition-all group cursor-default";
-                row.innerHTML = `
-                    <td class="p-6 font-medium text-slate-600">${item.date}</td>
+                body.innerHTML += `<tr class="text-sm hover:bg-slate-50">
+                    <td class="p-6">${item.date}</td>
                     <td class="p-6 font-bold text-slate-900">${item.taxNo}</td>
-                    <td class="p-6">
-                        <div class="font-bold text-slate-700">${item.customer}</div>
-                        <div class="text-[10px] text-slate-400 uppercase">Registered Client</div>
-                    </td>
+                    <td class="p-6">${item.customer}</td>
                     <td class="p-6 text-right font-bold text-slate-800">฿${(item.total - item.vat).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                    <td class="p-6 text-right font-black text-indigo-600">฿${item.vat.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                     <td class="p-6 text-center">
                         <span class="px-4 py-1.5 rounded-full text-[10px] font-bold ${isSystem ? 'source-system' : 'source-manual'}">
-                            ${isSystem ? '💻 ระบบออกบิล' : '✍️ คีย์มือ'}
+                            ${isSystem ? '💻 ระบบ' : '✍️ คีย์มือ'}
                         </span>
                     </td>
-                `;
-                body.appendChild(row);
+                </tr>`;
             });
         }
 
+        function showReportPreview() {
+            const m = parseInt(document.getElementById('reportMonth').value);
+            const y = parseInt(document.getElementById('reportYear').value);
+            const filtered = allData.filter(item => {
+                const d = parseDate(item.date);
+                return d.getMonth() === m && d.getFullYear() === y;
+            });
+            if(filtered.length === 0) { alert("⚠️ ไม่มีข้อมูลภาษีขายในเดือนที่เลือก"); return; }
+
+            // 🚀 หยอดข้อมูลที่สแกนเจอลงรายงานภาษีขาย
+            document.getElementById('ownName').innerText = companyInfo.name;
+            document.getElementById('ownStoreName').innerText = companyInfo.store;
+            document.getElementById('ownTaxID').innerText = companyInfo.taxId;
+            
+            const myBranch = companyInfo.branch.toString().trim();
+            const isHQ = (myBranch === "00000" || myBranch === "0" || myBranch === "สำนักงานใหญ่" || myBranch === "");
+            
+            document.getElementById('ownHqCheck').innerText = isHQ ? "[/]" : "[ ]";
+            document.getElementById('ownBrCheck').innerText = isHQ ? "[ ]" : "[/]";
+            document.getElementById('ownBranchNo').innerText = isHQ ? "" : myBranch;
+
+            document.getElementById('pMonth').innerText = monthsTH[m];
+            document.getElementById('pYear').innerText = y + 543;
+            
+            const pBody = document.getElementById('printBody');
+            pBody.innerHTML = "";
+            let tBase = 0, tVat = 0;
+
+            filtered.forEach((item, i) => {
+                const v = parseFloat(item.vat) || 0;
+                const b = item.total - v;
+                tBase += b; tVat += v;
+                
+                // 🚀 จัดการตารางลูกค้า (เลข 13 หลัก / สนญ. / สาขา)
+                const cBranch = (item.branch || "").toString().trim();
+                const isCustHQ = (cBranch === "00000" || cBranch === "0" || cBranch === "สำนักงานใหญ่" || cBranch === "");
+                const hqMark = isCustHQ ? "00000" : "";
+                const brMark = isCustHQ ? "" : cBranch;
+                
+                const cTaxID = item.taxID || item.taxId || "-";
+                
+                pBody.innerHTML += `<tr>
+                    <td align="center">${i+1}</td>
+                    <td align="center">${item.date}</td>
+                    <td>${item.taxNo}</td>
+                    <td>${item.customer}</td>
+                    <td align="center">${cTaxID}</td>
+                    <td align="center">${hqMark}</td>
+                    <td align="center">${brMark}</td>
+                    <td align="right">${b.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                    <td align="right">${v.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                </tr>`;
+            });
+
+            document.getElementById('pTotalBase').innerText = tBase.toLocaleString(undefined,{minimumFractionDigits:2});
+            document.getElementById('pTotalVat').innerText = tVat.toLocaleString(undefined,{minimumFractionDigits:2});
+            
+            document.getElementById('modalPrintArea').innerHTML = document.getElementById('printSection').innerHTML;
+            document.getElementById('reportModal').classList.remove('hidden');
+        }
+
+        function closeReportModal() { document.getElementById('reportModal').classList.add('hidden'); }
+        
         function filterTable() {
             const input = document.getElementById('searchInput').value.toUpperCase();
             const rows = document.getElementById('salesBody').getElementsByTagName('tr');
@@ -184,8 +349,7 @@
         function animateNumber(id, finalValue) {
             const el = document.getElementById(id);
             let start = 0;
-            const duration = 800;
-            const step = (finalValue / duration) * 10;
+            const step = (finalValue / 50);
             const timer = setInterval(() => {
                 start += step;
                 el.innerText = "฿" + Math.floor(start).toLocaleString();
